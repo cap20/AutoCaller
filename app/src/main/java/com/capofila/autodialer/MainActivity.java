@@ -112,6 +112,7 @@ public class MainActivity extends AppCompatActivity
         mContactViewModel.getAllContacts().observe(this, new Observer<List<ContactEntity>>() {
             @Override
             public void onChanged(@Nullable final List<ContactEntity> contactEntities) {
+//                Toast.makeText(MainActivity.this,"Hello",Toast.LENGTH_LONG).show();
                 mContactsList = contactEntities;
                 mAdapter.setContacts(contactEntities);
 
@@ -199,7 +200,35 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void startAutoCall() {
-        
+        if (mContactsList.isEmpty()) {
+            Toast.makeText(this, "Import Contacts ", Toast.LENGTH_LONG).show();
+        } else {
+            c = mContactsList.get(i);
+            Intent intent = new Intent(Intent.ACTION_CALL);
+            intent.setData(Uri.parse("tel:" + c.getPersonContactNumber()));
+            startActivity(intent);
+
+            for (i = 1; i < mContactsList.size();i++) {
+                c = mContactsList.get(i);
+
+                Log.d(TAG, "startAutoCall: " + c.getId());
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("Auto Dialer Start");
+
+                builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Toast.makeText(MainActivity.this, "hello", Toast.LENGTH_LONG).show();
+                        Intent intent = new Intent(Intent.ACTION_CALL);
+                        intent.setData(Uri.parse("tel:" + c.getPersonContactNumber()));
+                        startActivity(intent);
+                    }
+                });
+                AlertDialog dialog = builder.create();
+                dialog.show();
+            }
+        }
+
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
