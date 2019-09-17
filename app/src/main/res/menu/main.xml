@@ -14,11 +14,4 @@
         android:icon="@drawable/ic_call"
         app:showAsAction="always"
         />
-    <item
-        android:id="@+id/pause_call"
-        android:title="@string/pause_call_btn"
-        android:icon="@drawable/ic_phone"
-        app:showAsAction="always"
-        />
-
 </menu>

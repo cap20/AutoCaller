@@ -27,6 +27,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
+import android.widget.Button;
 import android.widget.Toast;
 import com.capofila.autodialer.contactList.ContactAdapter;
 import com.capofila.autodialer.database.ContactEntity;
@@ -38,6 +39,7 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
+
     private RecyclerView mContactRecyclerView;
     private static final String TAG = "Mainactivity";
     private List<ContactEntity> mContactsList = new ArrayList<>();
@@ -45,7 +47,7 @@ public class MainActivity extends AppCompatActivity
     private ContactEntity c;
     private ContactViewModel mContactViewModel;
     private List<ContactEntity> contacts = new ArrayList<>();
-    private int i = 0;
+    private int i = 1;
 
     private final static int REQUEST_CODE_ASK_PERMISSIONS = 1;
     private static final String[] REQUIRED_SDK_PERMISSIONS = new String[] {
@@ -188,12 +190,18 @@ public class MainActivity extends AppCompatActivity
             return true;
         }
         if (id == R.id.start_call) {
-            Toast.makeText(this, "Call Started" + mContactsList.size(), Toast.LENGTH_LONG).show();
+            if(mContactsList.isEmpty()){
+
+            }else{
+               ContactEntity cc = mContactsList.get(0);
+               Toast.makeText(MainActivity.this,"Call Started",Toast.LENGTH_LONG).show();
+               Intent intent = new Intent(Intent.ACTION_CALL);
+                intent.setData(Uri.parse("tel:" + cc.getPersonContactNumber()));
+                startActivity(intent);
+
+            }
             startAutoCall();
 
-        }
-        if (id == R.id.pause_call) {
-            Toast.makeText(this, "Call paused", Toast.LENGTH_LONG).show();
         }
 
         return super.onOptionsItemSelected(item);
@@ -204,31 +212,49 @@ public class MainActivity extends AppCompatActivity
             Toast.makeText(this, "Import Contacts ", Toast.LENGTH_LONG).show();
         } else {
             c = mContactsList.get(i);
-            Intent intent = new Intent(Intent.ACTION_CALL);
-            intent.setData(Uri.parse("tel:" + c.getPersonContactNumber()));
-            startActivity(intent);
 
-            for (i = 1; i < mContactsList.size();i++) {
-                c = mContactsList.get(i);
 
-                Log.d(TAG, "startAutoCall: " + c.getId());
-                AlertDialog.Builder builder = new AlertDialog.Builder(this);
-                builder.setTitle("Auto Dialer Start");
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("More Call?");
+            builder.setMessage("To call next number press next call \n To Pause Click cancel");
+            builder.setPositiveButton("Next Call",null);
+            builder.setNegativeButton("Cancel",null);
 
-                builder.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        Toast.makeText(MainActivity.this, "hello", Toast.LENGTH_LONG).show();
-                        Intent intent = new Intent(Intent.ACTION_CALL);
-                        intent.setData(Uri.parse("tel:" + c.getPersonContactNumber()));
-                        startActivity(intent);
-                    }
-                });
-                AlertDialog dialog = builder.create();
-                dialog.show();
-            }
+            final AlertDialog alertDialog = builder.create();
+            alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+                @Override
+                public void onShow(DialogInterface dialog) {
+
+
+                    Button negBtn = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+                    Button posBtn = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+                    negBtn.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            alertDialog.dismiss();
+                        }
+                    });
+
+                    posBtn.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            Intent intent = new Intent(Intent.ACTION_CALL);
+                            intent.setData(Uri.parse("tel:" + c.getPersonContactNumber()));
+                            startActivity(intent);
+
+                            if(i == mContactsList.size()-1 ){
+                                alertDialog.dismiss();
+                                i = 0;
+                            }else{
+                                i++;
+                                c = mContactsList.get(i);
+                            }
+                        }
+                    });
+                }
+            });
+            alertDialog.show();
         }
-
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
