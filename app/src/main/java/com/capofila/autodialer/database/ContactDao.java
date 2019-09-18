@@ -22,6 +22,9 @@ public interface ContactDao {
     @Query("SELECT * FROM contact")
     LiveData<List<ContactEntity>> getAllContacts();
 
+    @Query("DELETE FROM contact")
+    void deleteAll();
+
 
 
 }

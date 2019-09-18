@@ -5,16 +5,20 @@ import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.CountDownTimer;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.preference.PreferenceManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -33,6 +37,8 @@ import com.capofila.autodialer.contactList.ContactAdapter;
 import com.capofila.autodialer.database.ContactEntity;
 import com.capofila.autodialer.database.ContactViewModel;
 import com.capofila.autodialer.importAndExport.MyCSVFileReader;
+import com.capofila.autodialer.setting.Settings;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -41,13 +47,16 @@ public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
     private RecyclerView mContactRecyclerView;
-    private static final String TAG = "Mainactivity";
+    private static final String TAG = "MainActivity";
     private List<ContactEntity> mContactsList = new ArrayList<>();
     private ContactAdapter mAdapter;
     private ContactEntity c;
     private ContactViewModel mContactViewModel;
     private List<ContactEntity> contacts = new ArrayList<>();
     private int i = 1;
+    private String callTime;
+    private SharedPreferences.OnSharedPreferenceChangeListener preferenceChangeListener;
+
 
     private final static int REQUEST_CODE_ASK_PERMISSIONS = 1;
     private static final String[] REQUIRED_SDK_PERMISSIONS = new String[] {
@@ -64,40 +73,11 @@ public class MainActivity extends AppCompatActivity
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         FloatingActionButton fab = findViewById(R.id.fab);
+
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (ContextCompat.checkSelfPermission(MainActivity.this,
-                        Manifest.permission.READ_EXTERNAL_STORAGE)
-                        != PackageManager.PERMISSION_GRANTED) {
-
-                    // Permission is not granted
-                    // Should we show an explanation?
-                    if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this,
-                            Manifest.permission.READ_EXTERNAL_STORAGE)) {
-                        // Show an explanation to the user *asynchronously* -- don't block
-                        // this thread waiting for the user's response! After the user
-                        // sees the explanation, try again to request the permission.
-                    } else {
-                        // No explanation needed; request the permission
-                        ActivityCompat.requestPermissions(MainActivity.this,
-                                new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 0);
-
-                        // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
-                        // app-defined int constant. The callback method gets the
-                        // result of the request.
-                    }
-                } else {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-
-                        Log.d("Import", "onNavigationItemSelected: import clicked");
-                        MyCSVFileReader.openDialogToReadCSV(MainActivity.this, MainActivity.this);
-                    } else {
-
-                        Log.d("Import", "onNavigationItemSelected: import clicked");
-                        MyCSVFileReader.openDialogToReadCSV(MainActivity.this, MainActivity.this);
-                    }
-                }
+                importCSV();
             }
         });
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
@@ -114,10 +94,8 @@ public class MainActivity extends AppCompatActivity
         mContactViewModel.getAllContacts().observe(this, new Observer<List<ContactEntity>>() {
             @Override
             public void onChanged(@Nullable final List<ContactEntity> contactEntities) {
-//                Toast.makeText(MainActivity.this,"Hello",Toast.LENGTH_LONG).show();
                 mContactsList = contactEntities;
                 mAdapter.setContacts(contactEntities);
-
                 mAdapter.setOnItemClickListener(new ContactAdapter.OnItemClickListener() {
                     @Override
                     public void onItemClick(int position) {
@@ -135,29 +113,29 @@ public class MainActivity extends AppCompatActivity
                 });
             }
         });
+
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        callTime = sharedPreferences.getString("button_timeout","5000");
+
+        Log.d(TAG, "onCreate: call time " + callTime);
+
+        preferenceChangeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
+            @Override
+            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+                callTime = sharedPreferences.getString("button_timeout","5000");
+                Log.d(TAG, "onSharedPreferenceChanged: call Time" + callTime);
+            }
+        };
+        sharedPreferences.registerOnSharedPreferenceChangeListener(preferenceChangeListener);
+
     }
 
     private void initRecyclerView() {
-
-//        mContactsList = new ArrayList<>();
-//        mContactsList.add(new Contacts(1,"abc","9899372603"));
-//        mContactsList.add(new Contacts(2,"bfc","888"));
-//        mContactsList.add(new Contacts(3,"xyz","222"));
-//        mContactsList.add(new Contacts(4,"ksi","444"));
-//        mContactsList.add(new Contacts(5,"wassd","55"));
-//        mContactsList.add(new Contacts(6,"qwerty","000"));
-//        mContactsList.add(new Contacts(7,"lss","9999"));
-//        mContactsList.add(new Contacts(8,"gaiiisd","8787"));
-//        mContactsList.add(new Contacts(9,"ish","9898"));
-//        mContactsList.add(new Contacts(10,"thisss","7656"));
-
         mContactRecyclerView = findViewById(R.id.contactList);
         mAdapter = new ContactAdapter();
         mContactRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         mContactRecyclerView.setHasFixedSize(true);
         mContactRecyclerView.setAdapter(mAdapter);
-
-
     }
 
 
@@ -180,28 +158,23 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            return true;
+           Intent settingIntent = new Intent(MainActivity.this, Settings.class);
+           startActivity(settingIntent);
         }
         if (id == R.id.start_call) {
             if(mContactsList.isEmpty()){
-
+                //do nothing ....
             }else{
                ContactEntity cc = mContactsList.get(0);
                Toast.makeText(MainActivity.this,"Call Started",Toast.LENGTH_LONG).show();
                Intent intent = new Intent(Intent.ACTION_CALL);
                 intent.setData(Uri.parse("tel:" + cc.getPersonContactNumber()));
                 startActivity(intent);
-
             }
             startAutoCall();
-
         }
 
         return super.onOptionsItemSelected(item);
@@ -213,7 +186,6 @@ public class MainActivity extends AppCompatActivity
         } else {
             c = mContactsList.get(i);
 
-
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle("More Call?");
             builder.setMessage("To call next number press next call \n To Pause Click cancel");
@@ -224,10 +196,8 @@ public class MainActivity extends AppCompatActivity
             alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
                 @Override
                 public void onShow(DialogInterface dialog) {
-
-
                     Button negBtn = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-                    Button posBtn = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+                    final Button posBtn = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
                     negBtn.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -246,6 +216,7 @@ public class MainActivity extends AppCompatActivity
                                 alertDialog.dismiss();
                                 i = 0;
                             }else{
+
                                 i++;
                                 c = mContactsList.get(i);
                             }
@@ -253,9 +224,11 @@ public class MainActivity extends AppCompatActivity
                     });
                 }
             });
+
             alertDialog.show();
         }
     }
+
 
     @SuppressWarnings("StatementWithEmptyBody")
     @Override
@@ -263,6 +236,10 @@ public class MainActivity extends AppCompatActivity
         // Handle navigation view item clicks here.
         int id = item.getItemId();
 
+        if(id == R.id.menu_setting){
+            Intent settingIntent = new Intent(MainActivity.this,Settings.class);
+            startActivity(settingIntent);
+        }
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
@@ -309,7 +286,39 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
+    private void importCSV(){
+        if (ContextCompat.checkSelfPermission(MainActivity.this,
+                Manifest.permission.READ_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
 
+            // Permission is not granted
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this,
+                    Manifest.permission.READ_EXTERNAL_STORAGE)) {
+                // Show an explanation to the user *asynchronously* -- don't block
+                // this thread waiting for the user's response! After the user
+                // sees the explanation, try again to request the permission.
+            } else {
+                // No explanation needed; request the permission
+                ActivityCompat.requestPermissions(MainActivity.this,
+                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, 0);
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+
+                Log.d("Import", "onNavigationItemSelected: import clicked");
+                MyCSVFileReader.openDialogToReadCSV(MainActivity.this, MainActivity.this);
+            } else {
+
+                Log.d("Import", "onNavigationItemSelected: import clicked");
+                MyCSVFileReader.openDialogToReadCSV(MainActivity.this, MainActivity.this);
+            }
+        }
+    }
 }
 
 

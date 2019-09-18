@@ -4,6 +4,7 @@ import android.app.Application;
 import android.arch.lifecycle.LiveData;
 import android.os.AsyncTask;
 
+import java.nio.channels.AsynchronousServerSocketChannel;
 import java.util.List;
 
 public class ContactRepository {
@@ -25,7 +26,11 @@ public class ContactRepository {
     }
 
     public void delete(ContactEntity contactEntity){
+        new DeleteAsyncTask(mContactDao).execute(contactEntity);
+    }
 
+    public void deleteAll(){
+        new DeleteAllAsyncTask(mContactDao).execute();
     }
 
     public static class InsertAsyncTask extends AsyncTask<ContactEntity, Void, Void>{
@@ -39,6 +44,33 @@ public class ContactRepository {
         @Override
         protected Void doInBackground(ContactEntity... contactEntities) {
             mAsyncTaskDao.insert(contactEntities[0]);
+            return null;
+        }
+    }
+    public static class DeleteAsyncTask extends AsyncTask<ContactEntity, Void, Void>{
+        private ContactDao mContactDao;
+
+        public DeleteAsyncTask(ContactDao mContactDao) {
+            this.mContactDao = mContactDao;
+        }
+
+        @Override
+        protected Void doInBackground(ContactEntity... contactEntities) {
+            mContactDao.delete(contactEntities[0]);
+            return null;
+        }
+    }
+    public static class DeleteAllAsyncTask extends AsyncTask<Void, Void, Void>{
+
+        private ContactDao mContactDao;
+
+        public DeleteAllAsyncTask(ContactDao mContactDao) {
+            this.mContactDao = mContactDao;
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            mContactDao.deleteAll();
             return null;
         }
     }
