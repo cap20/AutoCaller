@@ -7,21 +7,21 @@ import android.arch.persistence.room.RoomDatabase;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.support.annotation.NonNull;
-import android.view.ViewOutlineProvider;
 
-@Database(entities = {ContactEntity.class}, version = 1)
+@Database(entities = {ContactEntity.class, ContactDialed.class}, version = 2)
 public abstract class ContactRoomDatabase extends RoomDatabase {
     public abstract ContactDao contactDao();
+    public abstract ContactDialedDao contactDialedDao();
 
-    private static   ContactRoomDatabase INSTANCE;
+    private static ContactRoomDatabase INSTANCE;
 
     static ContactRoomDatabase getDatabase(Context context) {
         if (INSTANCE == null) {
             synchronized (ContactRoomDatabase.class) {
                 if (INSTANCE == null) {
-                    INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
+                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             ContactRoomDatabase.class, "contact_database")
-//                            .addCallback(callback)
+                            .addCallback(callback)
                             .build();
                 }
             }
@@ -41,19 +41,16 @@ public abstract class ContactRoomDatabase extends RoomDatabase {
     private static class PopulateDbAsync extends AsyncTask<Void, Void, Void>{
 
         private ContactDao contactDao;
+        private ContactDialedDao contactDialedDao;
 
         public PopulateDbAsync(ContactRoomDatabase db) {
             contactDao = db.contactDao();
+            contactDialedDao = db.contactDialedDao();
         }
 
         @Override
         protected Void doInBackground(Void... voids) {
-            contactDao.insert(new ContactEntity("shubham","9899372603"));
-            contactDao.insert(new ContactEntity("shubham1","98993726031"));
-            contactDao.insert(new ContactEntity("shubham2","98993726032"));
-            contactDao.insert(new ContactEntity("shubham3","98993726033"));
-
-
+            contactDialedDao.insert(new ContactDialed("shubham","9899372603"));
             return null;
         }
     }

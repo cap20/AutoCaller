@@ -4,18 +4,21 @@ import android.app.Application;
 import android.arch.lifecycle.AndroidViewModel;
 import android.arch.lifecycle.LiveData;
 import android.support.annotation.NonNull;
-
 import java.util.List;
 
 public class ContactViewModel extends AndroidViewModel {
 
     private ContactRepository mRepository;
     private LiveData<List<ContactEntity>> mAllContacts;
+    private ContactDialedRepository mContactDialedRepository;
+    private LiveData<List<ContactDialed>> mAllContactDialed;
 
     public ContactViewModel(@NonNull Application application) {
         super(application);
         mRepository = new ContactRepository(application);
         mAllContacts = mRepository.getAllContacts();
+        mContactDialedRepository = new ContactDialedRepository(application);
+        mAllContactDialed = mContactDialedRepository.getAllContacts();
     }
 
     public LiveData<List<ContactEntity>> getAllContacts()
@@ -35,7 +38,7 @@ public class ContactViewModel extends AndroidViewModel {
         mRepository.deleteAll();
     }
 
-
-
-
+    public LiveData<List<ContactDialed>> getAllDialedContact(){
+        return mAllContactDialed;
+    }
 }

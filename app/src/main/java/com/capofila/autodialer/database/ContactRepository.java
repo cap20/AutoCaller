@@ -3,8 +3,6 @@ package com.capofila.autodialer.database;
 import android.app.Application;
 import android.arch.lifecycle.LiveData;
 import android.os.AsyncTask;
-
-import java.nio.channels.AsynchronousServerSocketChannel;
 import java.util.List;
 
 public class ContactRepository {
