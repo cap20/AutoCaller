@@ -34,7 +34,9 @@ import android.view.Menu;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.capofila.autodialer.contactHistory.CallHistory;
 import com.capofila.autodialer.contactList.ContactAdapter;
+import com.capofila.autodialer.database.ContactDialed;
 import com.capofila.autodialer.database.ContactEntity;
 import com.capofila.autodialer.database.ContactViewModel;
 import com.capofila.autodialer.importAndExport.MyCSVFileReader;
@@ -53,7 +55,6 @@ public class MainActivity extends AppCompatActivity
     private ContactEntity c;
     private ContactViewModel mContactViewModel;
     private List<ContactEntity> contacts = new ArrayList<>();
-    private int i = 1;
     private int j = 0;
     private String callTime;
     TextView mCountDownTimer;
@@ -96,24 +97,25 @@ public class MainActivity extends AppCompatActivity
         mContactViewModel = ViewModelProviders.of(this).get(ContactViewModel.class);
         mContactViewModel.getAllContacts().observe(this, new Observer<List<ContactEntity>>() {
             @Override
-            public void onChanged(@Nullable final List<ContactEntity> contactEntities) {
+            public void onChanged(@Nullable List<ContactEntity> contactEntities) {
                 mContactsList = contactEntities;
                 mAdapter.setContacts(contactEntities);
-                mAdapter.setOnItemClickListener(new ContactAdapter.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(int position) {
-                        contacts.get(position);
-                    }
+            }
+        });
 
-                    @Override
-                    public void onCallClick(int position) {
-                        ContactEntity c = contactEntities.get(position);
-                        Toast.makeText(MainActivity.this, "Clicked on " + c.getId(), Toast.LENGTH_LONG).show();
-                        Intent intent = new Intent(Intent.ACTION_CALL);
-                        intent.setData(Uri.parse("tel:" + c.getPersonContactNumber()));
-                        startActivity(intent);
-                    }
-                });
+        mAdapter.setOnItemClickListener(new ContactAdapter.OnItemClickListener() {
+            @Override
+            public void onItemClick(int position) {
+                mContactsList.get(position);
+            }
+
+            @Override
+            public void onCallClick(int position) {
+                ContactEntity c = mContactsList.get(position);
+                Log.d(TAG, "onCallClick: call btn in each card " + c.getId()+ "\n" + c.getPersonContactNumber());
+                Intent intent = new Intent(Intent.ACTION_CALL);
+                intent.setData(Uri.parse("tel:" + c.getPersonContactNumber()));
+                startActivity(intent);
             }
         });
 
@@ -141,7 +143,6 @@ public class MainActivity extends AppCompatActivity
         mContactRecyclerView.setAdapter(mAdapter);
     }
 
-
     @Override
     public void onBackPressed() {
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
@@ -168,18 +169,8 @@ public class MainActivity extends AppCompatActivity
             startActivity(settingIntent);
         }
         if (id == R.id.start_call) {
-//            if(mContactsList.isEmpty()){
-//                //do nothing ....
-//            }else{
-//               ContactEntity cc = mContactsList.get(0);
-//               Toast.makeText(MainActivity.this,"Call Started",Toast.LENGTH_LONG).show();
-//               Intent intent = new Intent(Intent.ACTION_CALL);
-//                intent.setData(Uri.parse("tel:" + cc.getPersonContactNumber()));
-//                startActivity(intent);
-//            }
             startAutoCall();
         }
-
         return super.onOptionsItemSelected(item);
     }
 
@@ -204,9 +195,9 @@ public class MainActivity extends AppCompatActivity
         if (mContactsList.isEmpty()) {
             Toast.makeText(this, "Import Contacts ", Toast.LENGTH_LONG).show();
         } else {
-            long milis = Long.parseLong(callTime);
-            Log.d(TAG, "startAutoCall: COUNT DOWN TIMER : TIME IN LONG " + milis);
-            countDownTimer = new CountDownTimer(milis, 1000) {
+            long millis = Long.parseLong(callTime);
+            Log.d(TAG, "startAutoCall: COUNT DOWN TIMER : TIME IN LONG " + millis);
+            countDownTimer = new CountDownTimer(millis, 1000) {
                 @Override
                 public void onTick(long millisUntilFinished) {
                     long timer = millisUntilFinished / 1000;
@@ -264,6 +255,11 @@ public class MainActivity extends AppCompatActivity
         if (id == R.id.menu_setting) {
             Intent settingIntent = new Intent(MainActivity.this, Settings.class);
             startActivity(settingIntent);
+        }
+        if (id == R.id.call_history) {
+            Toast.makeText(MainActivity.this, "call his", Toast.LENGTH_LONG).show();
+            Intent callHistoryIntent = new Intent(MainActivity.this, CallHistory.class);
+            startActivity(callHistoryIntent);
         }
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
@@ -347,14 +343,22 @@ public class MainActivity extends AppCompatActivity
 
     private void autoCallDialog() {
         if (mContactsList.isEmpty()) {
-            Toast.makeText(MainActivity.this,"Import Contact",Toast.LENGTH_LONG).show();
+            Toast.makeText(MainActivity.this, "Import Contact", Toast.LENGTH_LONG).show();
         } else {
             ContactEntity contactEntity1 = mContactsList.get(j);
             Intent intent = new Intent(Intent.ACTION_CALL);
             intent.setData(Uri.parse("tel:" + contactEntity1.getPersonContactNumber()));
             startActivity(intent);
+            mContactViewModel.insertDialedContact(new ContactDialed(contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber()));
+            mContactViewModel.deleteById(contactEntity1);
+            mContactsList.remove(j);
 
-            c = mContactsList.get(i);
+            if(mContactsList.isEmpty()){
+
+            }else{
+                c = mContactsList.get(j);
+            }
+
             AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
             builder.setTitle("More Call?");
             builder.setMessage("To call next number press next call \n To Pause Click cancel");
@@ -365,7 +369,7 @@ public class MainActivity extends AppCompatActivity
 
             alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
                 @Override
-                public void onShow(DialogInterface dialog) {
+                public void onShow(final DialogInterface dialog) {
 
                     Button negBtn = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
                     final Button posBtn = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
@@ -373,20 +377,30 @@ public class MainActivity extends AppCompatActivity
                     posBtn.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            Intent intent = new Intent(Intent.ACTION_CALL);
-                            intent.setData(Uri.parse("tel:" + c.getPersonContactNumber()));
-                            startActivity(intent);
+                                Intent intent = new Intent(Intent.ACTION_CALL);
+                                intent.setData(Uri.parse("tel:" + c.getPersonContactNumber()));
+                                startActivity(intent);
+                                mContactViewModel.insertDialedContact(new ContactDialed(c.getPersonName(), c.getPersonContactNumber()));
+                                mContactViewModel.deleteById(c);
+                                mContactsList.remove(j);
 
-                            if (i == mContactsList.size() - 1) {
-                                alertDialog.dismiss();
-                            } else {
+                                Log.i(TAG, "calling on id " + c.getId());
 
-                                i++;
-                                c = mContactsList.get(i);
-                                j = i;
-                            }
+                                if (mContactsList.isEmpty()) {
+                                    alertDialog.dismiss();
+                                    //mContactsList.removeAll(mContactsList);
+                                } else {
+                                    //i++;
+                                    if (mContactsList.isEmpty()) {
+                                        Toast.makeText(MainActivity.this, "No More Contacts To call", Toast.LENGTH_LONG).show();
+                                        dialog.dismiss();
+                                    } else {
+                                        c = mContactsList.get(j);
+                                    }
+                                }
                         }
                     });
+
                     negBtn.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
@@ -399,7 +413,9 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-
+    private void showCommentDialog(){
+        
+    }
 }
 
 

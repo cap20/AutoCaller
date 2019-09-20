@@ -34,8 +34,16 @@ public class ContactViewModel extends AndroidViewModel {
         mRepository.delete(contactEntity);
     }
 
+    public void insertDialedContact(ContactDialed contactDialed){
+        mContactDialedRepository.insertDialedContact(contactDialed);
+    }
+
     public void deleteAll(){
         mRepository.deleteAll();
+    }
+
+    public void deleteById(ContactEntity contactEntity){
+        mRepository.deleteById(contactEntity);
     }
 
     public LiveData<List<ContactDialed>> getAllDialedContact(){

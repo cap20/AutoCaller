@@ -29,10 +29,6 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactViewHolder> {
 
     }
 
-//    public ContactAdapter(ArrayList<Contacts> mContactList){
-//        this.mContactList = mContactList;
-//    }
-
     @NonNull
     @Override
     public ContactViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
@@ -56,5 +52,9 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactViewHolder> {
     public void setContacts(List<ContactEntity> contacts){
         this.contacts = contacts;
         notifyDataSetChanged();
+    }
+
+    public ContactEntity getContactAtPosition(int position){
+        return contacts.get(position);
     }
 }

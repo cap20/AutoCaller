@@ -21,7 +21,7 @@ public abstract class ContactRoomDatabase extends RoomDatabase {
                 if (INSTANCE == null) {
                      INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                             ContactRoomDatabase.class, "contact_database")
-                            .addCallback(callback)
+//                            .addCallback(callback)
                             .build();
                 }
             }
@@ -54,5 +54,4 @@ public abstract class ContactRoomDatabase extends RoomDatabase {
             return null;
         }
     }
-
 }
