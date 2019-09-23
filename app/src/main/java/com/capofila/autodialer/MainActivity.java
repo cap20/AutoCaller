@@ -48,7 +48,6 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
-    private RecyclerView mContactRecyclerView;
     private static final String TAG = "MainActivity";
     private List<ContactEntity> mContactsList = new ArrayList<>();
     private ContactAdapter mAdapter;
@@ -58,8 +57,8 @@ public class MainActivity extends AppCompatActivity
     private int j = 0;
     private String callTime;
     TextView mCountDownTimer;
-    private Button posButton, negButton;
-    private SharedPreferences.OnSharedPreferenceChangeListener preferenceChangeListener;
+    private Button posButton;
+    private boolean showCommentDialog;
 
     private final static int REQUEST_CODE_ASK_PERMISSIONS = 1;
     private static final String[] REQUIRED_SDK_PERMISSIONS = new String[]{
@@ -112,7 +111,7 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onCallClick(int position) {
                 ContactEntity c = mContactsList.get(position);
-                Log.d(TAG, "onCallClick: call btn in each card " + c.getId()+ "\n" + c.getPersonContactNumber());
+                Log.d(TAG, "onCallClick: call btn in each card " + c.getId() + "\n" + c.getPersonContactNumber());
                 Intent intent = new Intent(Intent.ACTION_CALL);
                 intent.setData(Uri.parse("tel:" + c.getPersonContactNumber()));
                 startActivity(intent);
@@ -121,22 +120,25 @@ public class MainActivity extends AppCompatActivity
 
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         callTime = sharedPreferences.getString("button_timeout", "5000");
+        showCommentDialog = sharedPreferences.getBoolean("comment_dialog", true);
 
-        Log.d(TAG, "onCreate: call time " + callTime);
 
-        preferenceChangeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
+        SharedPreferences.OnSharedPreferenceChangeListener preferenceChangeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
             @Override
             public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
                 callTime = sharedPreferences.getString("button_timeout", "5000");
+                showCommentDialog = sharedPreferences.getBoolean("comment_dialog", true);
                 Log.d(TAG, "onSharedPreferenceChanged: call Time" + callTime);
+                Log.d(TAG, "onSharedPreferenceChanged: showCommentDialog" + showCommentDialog);
             }
         };
         sharedPreferences.registerOnSharedPreferenceChangeListener(preferenceChangeListener);
-
     }
 
+
+
     private void initRecyclerView() {
-        mContactRecyclerView = findViewById(R.id.contactList);
+        RecyclerView mContactRecyclerView = findViewById(R.id.contactList);
         mAdapter = new ContactAdapter();
         mContactRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         mContactRecyclerView.setHasFixedSize(true);
@@ -177,7 +179,6 @@ public class MainActivity extends AppCompatActivity
     private void startAutoCall() {
 
         final CountDownTimer countDownTimer;
-
         LayoutInflater layoutInflater = LayoutInflater.from(MainActivity.this);
         View countDownLayout = layoutInflater.inflate(R.layout.timer_dialog, null);
 
@@ -185,16 +186,17 @@ public class MainActivity extends AppCompatActivity
         countDownAlertBuilder.setTitle("Call Will Start In");
         countDownAlertBuilder.setView(countDownLayout);
         mCountDownTimer = countDownLayout.findViewById(R.id.timerText);
+
         posButton = countDownLayout.findViewById(R.id.pos_btn);
-        negButton = countDownLayout.findViewById(R.id.neg_btn);
+        Button negButton = countDownLayout.findViewById(R.id.neg_btn);
 
         //creating alert Dialog
         final AlertDialog alertDialog = countDownAlertBuilder.create();
-        alertDialog.show();
 
         if (mContactsList.isEmpty()) {
-            Toast.makeText(this, "Import Contacts ", Toast.LENGTH_LONG).show();
+            importContactToast();
         } else {
+            alertDialog.show();
             long millis = Long.parseLong(callTime);
             Log.d(TAG, "startAutoCall: COUNT DOWN TIMER : TIME IN LONG " + millis);
             countDownTimer = new CountDownTimer(millis, 1000) {
@@ -206,7 +208,6 @@ public class MainActivity extends AppCompatActivity
 
                 @Override
                 public void onFinish() {
-                    Toast.makeText(MainActivity.this, "Working", Toast.LENGTH_SHORT).show();
                     /*
                      * If the @CountDownTimer finished this method execute automatically..
                      * */
@@ -219,6 +220,7 @@ public class MainActivity extends AppCompatActivity
                     posButton.performClick();
                 }
             }.start();
+
             negButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -242,11 +244,9 @@ public class MainActivity extends AppCompatActivity
     // positive button execution code is here..
     private void executePositiveButton(AlertDialog alertDialog) {
         autoCallDialog();
-        Toast.makeText(MainActivity.this, "pos button", Toast.LENGTH_LONG).show();
         alertDialog.dismiss();
     }
 
-    @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
         // Handle navigation view item clicks here.
@@ -343,7 +343,7 @@ public class MainActivity extends AppCompatActivity
 
     private void autoCallDialog() {
         if (mContactsList.isEmpty()) {
-            Toast.makeText(MainActivity.this, "Import Contact", Toast.LENGTH_LONG).show();
+            importContactToast();
         } else {
             ContactEntity contactEntity1 = mContactsList.get(j);
             Intent intent = new Intent(Intent.ACTION_CALL);
@@ -353,68 +353,91 @@ public class MainActivity extends AppCompatActivity
             mContactViewModel.deleteById(contactEntity1);
             mContactsList.remove(j);
 
-            if(mContactsList.isEmpty()){
-
+            if(showCommentDialog){
+                showCommentDialog();
             }else{
-                c = mContactsList.get(j);
+                afterFirstCall();
             }
-
-            AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-            builder.setTitle("More Call?");
-            builder.setMessage("To call next number press next call \n To Pause Click cancel");
-            builder.setPositiveButton("Next Call", null);
-            builder.setNegativeButton("Cancel", null);
-
-            final AlertDialog alertDialog = builder.create();
-
-            alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
-                @Override
-                public void onShow(final DialogInterface dialog) {
-
-                    Button negBtn = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-                    final Button posBtn = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
-
-                    posBtn.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                                Intent intent = new Intent(Intent.ACTION_CALL);
-                                intent.setData(Uri.parse("tel:" + c.getPersonContactNumber()));
-                                startActivity(intent);
-                                mContactViewModel.insertDialedContact(new ContactDialed(c.getPersonName(), c.getPersonContactNumber()));
-                                mContactViewModel.deleteById(c);
-                                mContactsList.remove(j);
-
-                                Log.i(TAG, "calling on id " + c.getId());
-
-                                if (mContactsList.isEmpty()) {
-                                    alertDialog.dismiss();
-                                    //mContactsList.removeAll(mContactsList);
-                                } else {
-                                    //i++;
-                                    if (mContactsList.isEmpty()) {
-                                        Toast.makeText(MainActivity.this, "No More Contacts To call", Toast.LENGTH_LONG).show();
-                                        dialog.dismiss();
-                                    } else {
-                                        c = mContactsList.get(j);
-                                    }
-                                }
-                        }
-                    });
-
-                    negBtn.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            alertDialog.dismiss();
-                        }
-                    });
-                }
-            });
-            alertDialog.show();
         }
     }
 
-    private void showCommentDialog(){
-        
+    private void showCommentDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.comment_dialog_title);
+        builder.setPositiveButton(R.string.comment_post_btn, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Log.d(TAG, "onClick: comment posted");
+                afterFirstCall();
+            }
+        });
+
+        AlertDialog dialog = builder.create();
+        dialog.setCancelable(false);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.show();
+    }
+
+    private void afterFirstCall(){
+        if (mContactsList.isEmpty()) {
+            importContactToast();
+        } else {
+            c = mContactsList.get(j);
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setTitle(R.string.next_call_dialog_title);
+        builder.setMessage("To call next number press next call \n To Pause Click cancel");
+        builder.setPositiveButton(R.string.next_call_dialog_title, null);
+        builder.setNegativeButton(R.string.alert_dialog_cancel_btn_text, null);
+
+        final AlertDialog alertDialog = builder.create();
+
+        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(final DialogInterface dialog) {
+
+                Button negBtn = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+                final Button posBtn = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+
+                posBtn.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Intent intent = new Intent(Intent.ACTION_CALL);
+                        intent.setData(Uri.parse("tel:" + c.getPersonContactNumber()));
+                        startActivity(intent);
+
+                        if(showCommentDialog){
+                            showCommentDialog();
+                        }
+
+                        mContactViewModel.insertDialedContact(new ContactDialed(c.getPersonName(), c.getPersonContactNumber()));
+                        mContactViewModel.deleteById(c);
+                        mContactsList.remove(j);
+                        Log.i(TAG, "calling on id " + c.getId());
+
+                        if(mContactsList.isEmpty()) {
+                            importContactToast();
+                            dialog.dismiss();
+                        } else {
+                            c = mContactsList.get(j);
+                        }
+                    }
+                });
+
+                negBtn.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        alertDialog.dismiss();
+                    }
+                });
+            }
+        });
+        alertDialog.show();
+    }
+
+    private void importContactToast() {
+        Toast.makeText(MainActivity.this, "No Contact Found!! Import Contacts", Toast.LENGTH_LONG).show();
     }
 }
 

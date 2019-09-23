@@ -19,4 +19,9 @@
     <string name="start_call_btn">Start Call</string>
     <string name="pause_call_btn">Pause Call</string>
     <string name="not_called_status_text">Not Called</string>
+    <string name="next_call_dialog_title">Next Call?</string>
+    <string name="dialog_next_call_btn_text">Next Call</string>
+    <string name="alert_dialog_cancel_btn_text">Cancel</string>
+    <string name="comment_dialog_title">Call Description</string>
+    <string name="comment_post_btn">Post</string>
 </resources>
