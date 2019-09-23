@@ -140,8 +140,6 @@ public class MainActivity extends AppCompatActivity
         sharedPreferences.registerOnSharedPreferenceChangeListener(preferenceChangeListener);
     }
 
-
-
     private void initRecyclerView() {
         RecyclerView mContactRecyclerView = findViewById(R.id.contactList);
         mAdapter = new ContactAdapter();
@@ -182,22 +180,32 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void startAutoCall() {
+        /**
+         *Variables and @View Declaration..
+         */
 
         final CountDownTimer countDownTimer;
         LayoutInflater layoutInflater = LayoutInflater.from(MainActivity.this);
         View countDownLayout = layoutInflater.inflate(R.layout.timer_dialog, null);
 
+        // AlertDialog creatiion
         final AlertDialog.Builder countDownAlertBuilder = new AlertDialog.Builder(MainActivity.this);
         countDownAlertBuilder.setTitle("Call Will Start In");
         countDownAlertBuilder.setView(countDownLayout);
+        //textview Reference
         mCountDownTimer = countDownLayout.findViewById(R.id.timerText);
-
+        //button reference
         posButton = countDownLayout.findViewById(R.id.pos_btn);
         Button negButton = countDownLayout.findViewById(R.id.neg_btn);
 
         //creating alert Dialog
         final AlertDialog alertDialog = countDownAlertBuilder.create();
 
+        /*
+        * if @List is empty, then it will show @Toast
+        * else it will execute the countdown timer
+        * and positiveButton code
+        * */
         if (mContactsList.isEmpty()) {
             importContactToast();
         } else {
@@ -251,6 +259,131 @@ public class MainActivity extends AppCompatActivity
     private void executePositiveButton(AlertDialog alertDialog) {
         autoCallDialog();
         alertDialog.dismiss();
+    }
+
+    private void autoCallDialog()   {
+        if (mContactsList.isEmpty()) {
+            importContactToast();
+        } else {
+            ContactEntity contactEntity1 = mContactsList.get(j);
+            //send intent with the @contact_number to auto dial
+            Intent intent = new Intent(Intent.ACTION_CALL);
+            intent.setData(Uri.parse("tel:" + contactEntity1.getPersonContactNumber()));
+            startActivity(intent);
+
+            /*
+            * if @showCommentDialog is true, which is the value of preference,
+            * @showCommentDialog method will execute,
+            * else @afterFirstCall() will execute
+            * */
+            if(showCommentDialog){
+                showCommentDialog(contactEntity1.getId(), contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber());
+                //mContactViewModel.insertDialedContact(new ContactDialed(contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber(),""));
+                mContactViewModel.deleteById(contactEntity1);
+                mContactsList.remove(j);
+            }else{
+                mContactViewModel.insertDialedContact(new ContactDialed(contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber(),""));
+                mContactViewModel.deleteById(contactEntity1);
+                mContactsList.remove(j);
+                afterFirstCall();
+            }
+        }
+    }
+
+    private void showCommentDialog(final int id, final String name, final String contactNumber) {
+        LayoutInflater layoutInflater = LayoutInflater.from(MainActivity.this);
+        final View commentView = layoutInflater.inflate(R.layout.comment_dialog,null);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.comment_dialog_title);
+        builder.setView(commentView);
+        builder.setPositiveButton(R.string.comment_post_btn, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                Log.d(TAG, "onClick: comment posted");
+
+                TextInputLayout commentInputLayout = commentView.findViewById(R.id.comment_text_layout);
+                TextInputEditText commentEditText = commentView.findViewById(R.id.comment_edit_text);
+
+                String s = commentEditText.getText().toString();
+                ContactDialed contactDialed = new ContactDialed(name,contactNumber,s);
+                //contactDialed.setId(id);
+                mContactViewModel.insertDialedContact(contactDialed);
+                Log.d(TAG, "onClick: " + s);
+                afterFirstCall();
+
+            }
+        });
+
+        AlertDialog dialog = builder.create();
+        dialog.setCancelable(false);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.show();
+    }
+
+    private void afterFirstCall(){
+        if (mContactsList.isEmpty()) {
+            importContactToast();
+        } else {
+            c = mContactsList.get(j);
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+        builder.setTitle(R.string.next_call_dialog_title);
+        builder.setMessage("To call next number press next call \n To Pause Click cancel");
+        builder.setPositiveButton(R.string.next_call_dialog_title, null);
+        builder.setNegativeButton(R.string.alert_dialog_cancel_btn_text, null);
+
+        final AlertDialog alertDialog = builder.create();
+
+        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(final DialogInterface dialog) {
+
+                Button negBtn = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+                final Button posBtn = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+
+                posBtn.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+
+                        Intent intent = new Intent(Intent.ACTION_CALL);
+                        intent.setData(Uri.parse("tel:" + c.getPersonContactNumber()));
+                        startActivity(intent);
+
+                        if(showCommentDialog){
+                            showCommentDialog(c.getId(),c.getPersonName(),c.getPersonContactNumber());
+                            mContactViewModel.deleteById(c);
+                            mContactsList.remove(j);
+                        }else{
+                            mContactViewModel.insertDialedContact(new ContactDialed(c.getPersonName(), c.getPersonContactNumber(),""));
+                            mContactViewModel.deleteById(c);
+                            mContactsList.remove(j);
+                            Log.i(TAG, "calling on id " + c.getId());
+                        }
+
+                        if(mContactsList.isEmpty()) {
+                            importContactToast();
+                            dialog.dismiss();
+                        } else {
+                            c = mContactsList.get(j);
+                        }
+                    }
+                });
+
+                negBtn.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        alertDialog.dismiss();
+                    }
+                });
+            }
+        });
+        alertDialog.show();
+    }
+
+    private void importContactToast() {
+        Toast.makeText(MainActivity.this, "No Contact Found!! Import Contacts", Toast.LENGTH_LONG).show();
     }
 
     @Override
@@ -347,119 +480,7 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    private void autoCallDialog()   {
-        if (mContactsList.isEmpty()) {
-            importContactToast();
-        } else {
-            ContactEntity contactEntity1 = mContactsList.get(j);
-            Intent intent = new Intent(Intent.ACTION_CALL);
-            intent.setData(Uri.parse("tel:" + contactEntity1.getPersonContactNumber()));
-            startActivity(intent);
-            if(showCommentDialog){
-                showCommentDialog(contactEntity1.getId(), contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber());
-                mContactViewModel.insertDialedContact(new ContactDialed(contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber(),""));
-                mContactViewModel.deleteById(contactEntity1);
-                mContactsList.remove(j);
-            }else{
-                mContactViewModel.insertDialedContact(new ContactDialed(contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber(),""));
-                mContactViewModel.deleteById(contactEntity1);
-                mContactsList.remove(j);
-                afterFirstCall();
-            }
-        }
-    }
-    
-    private void showCommentDialog(final int id, final String name, final String contactNumber) {
-        LayoutInflater layoutInflater = LayoutInflater.from(MainActivity.this);
-        final View commentView = layoutInflater.inflate(R.layout.comment_dialog,null);
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(R.string.comment_dialog_title);
-        builder.setView(commentView);
-        builder.setPositiveButton(R.string.comment_post_btn, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                Log.d(TAG, "onClick: comment posted");
-                TextInputLayout commentInputLayout = commentView.findViewById(R.id.comment_text_layout);
-                TextInputEditText commentEditText = commentView.findViewById(R.id.comment_edit_text);
-                String s = commentEditText.getText().toString();
-                ContactDialed contactDialed = new ContactDialed(name,contactNumber,s);
-                contactDialed.setId(id);
-                mContactViewModel.updateDialedContact(contactDialed);
-                Log.d(TAG, "onClick: " + s);
-                    afterFirstCall();
-
-            }
-        });
-
-        AlertDialog dialog = builder.create();
-        dialog.setCancelable(false);
-        dialog.setCanceledOnTouchOutside(false);
-        dialog.show();
-    }
-
-    private void afterFirstCall(){
-        if (mContactsList.isEmpty()) {
-            importContactToast();
-        } else {
-            c = mContactsList.get(j);
-        }
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-        builder.setTitle(R.string.next_call_dialog_title);
-        builder.setMessage("To call next number press next call \n To Pause Click cancel");
-        builder.setPositiveButton(R.string.next_call_dialog_title, null);
-        builder.setNegativeButton(R.string.alert_dialog_cancel_btn_text, null);
-
-        final AlertDialog alertDialog = builder.create();
-
-        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
-            @Override
-            public void onShow(final DialogInterface dialog) {
-
-                Button negBtn = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-                final Button posBtn = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
-
-                posBtn.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Intent intent = new Intent(Intent.ACTION_CALL);
-                        intent.setData(Uri.parse("tel:" + c.getPersonContactNumber()));
-                        startActivity(intent);
-
-                        if(showCommentDialog){
-
-                            showCommentDialog(c.getId(),c.getPersonName(),c.getPersonContactNumber());
-                        }
-
-                        mContactViewModel.insertDialedContact(new ContactDialed(c.getPersonName(), c.getPersonContactNumber(),""));
-                        mContactViewModel.deleteById(c);
-                        mContactsList.remove(j);
-                        Log.i(TAG, "calling on id " + c.getId());
-
-                        if(mContactsList.isEmpty()) {
-                            importContactToast();
-                            dialog.dismiss();
-                        } else {
-                            c = mContactsList.get(j);
-                        }
-                    }
-                });
-
-                negBtn.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        alertDialog.dismiss();
-                    }
-                });
-            }
-        });
-        alertDialog.show();
-    }
-
-    private void importContactToast() {
-        Toast.makeText(MainActivity.this, "No Contact Found!! Import Contacts", Toast.LENGTH_LONG).show();
-    }
 }
 
 
