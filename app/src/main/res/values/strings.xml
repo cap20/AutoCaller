@@ -24,4 +24,5 @@
     <string name="alert_dialog_cancel_btn_text">Cancel</string>
     <string name="comment_dialog_title">Call Description</string>
     <string name="comment_post_btn">Post</string>
+    <string name="comment_text">Call Status</string>
 </resources>

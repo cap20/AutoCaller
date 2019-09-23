@@ -24,6 +24,25 @@ public class ContactDialedRepository {
         new InsertDialedAsyncTask(mDao).execute(contactDialed);
     }
 
+    public void update (ContactDialed contactDialed){
+        new UpdateDialedAsyncTask(mDao).execute(contactDialed);
+    }
+
+    private static class UpdateDialedAsyncTask extends AsyncTask<ContactDialed, Void, Void>{
+
+        ContactDialedDao mDialedDao;
+
+        public UpdateDialedAsyncTask(ContactDialedDao mDialedDao) {
+            this.mDialedDao = mDialedDao;
+        }
+
+        @Override
+        protected Void doInBackground(ContactDialed... contactDialeds) {
+            mDialedDao.update(contactDialeds[0]);
+            return null;
+        }
+    }
+
     private static class InsertDialedAsyncTask extends AsyncTask<ContactDialed, Void, Void>{
         ContactDialedDao mDao;
 

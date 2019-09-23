@@ -50,7 +50,7 @@ public abstract class ContactRoomDatabase extends RoomDatabase {
 
         @Override
         protected Void doInBackground(Void... voids) {
-            contactDialedDao.insert(new ContactDialed("shubham","9899372603"));
+            contactDialedDao.insert(new ContactDialed("shubham","9899372603",""));
             return null;
         }
     }

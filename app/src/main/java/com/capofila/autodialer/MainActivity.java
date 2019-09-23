@@ -14,6 +14,8 @@ import android.os.CountDownTimer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.TextInputEditText;
+import android.support.design.widget.TextInputLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
@@ -41,6 +43,9 @@ import com.capofila.autodialer.database.ContactEntity;
 import com.capofila.autodialer.database.ContactViewModel;
 import com.capofila.autodialer.importAndExport.MyCSVFileReader;
 import com.capofila.autodialer.setting.Settings;
+
+import org.apache.poi.ss.formula.functions.T;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -203,7 +208,8 @@ public class MainActivity extends AppCompatActivity
                 @Override
                 public void onTick(long millisUntilFinished) {
                     long timer = millisUntilFinished / 1000;
-                    mCountDownTimer.setText("Call Will Start in" + timer);
+                    String s = String.valueOf(timer);
+                    mCountDownTimer.setText(s);
                 }
 
                 @Override
@@ -341,7 +347,7 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    private void autoCallDialog() {
+    private void autoCallDialog()   {
         if (mContactsList.isEmpty()) {
             importContactToast();
         } else {
@@ -349,26 +355,40 @@ public class MainActivity extends AppCompatActivity
             Intent intent = new Intent(Intent.ACTION_CALL);
             intent.setData(Uri.parse("tel:" + contactEntity1.getPersonContactNumber()));
             startActivity(intent);
-            mContactViewModel.insertDialedContact(new ContactDialed(contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber()));
-            mContactViewModel.deleteById(contactEntity1);
-            mContactsList.remove(j);
-
             if(showCommentDialog){
-                showCommentDialog();
+                showCommentDialog(contactEntity1.getId(), contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber());
+                mContactViewModel.insertDialedContact(new ContactDialed(contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber(),""));
+                mContactViewModel.deleteById(contactEntity1);
+                mContactsList.remove(j);
             }else{
+                mContactViewModel.insertDialedContact(new ContactDialed(contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber(),""));
+                mContactViewModel.deleteById(contactEntity1);
+                mContactsList.remove(j);
                 afterFirstCall();
             }
         }
     }
+    
+    private void showCommentDialog(final int id, final String name, final String contactNumber) {
+        LayoutInflater layoutInflater = LayoutInflater.from(MainActivity.this);
+        final View commentView = layoutInflater.inflate(R.layout.comment_dialog,null);
 
-    private void showCommentDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.comment_dialog_title);
+        builder.setView(commentView);
         builder.setPositiveButton(R.string.comment_post_btn, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 Log.d(TAG, "onClick: comment posted");
-                afterFirstCall();
+                TextInputLayout commentInputLayout = commentView.findViewById(R.id.comment_text_layout);
+                TextInputEditText commentEditText = commentView.findViewById(R.id.comment_edit_text);
+                String s = commentEditText.getText().toString();
+                ContactDialed contactDialed = new ContactDialed(name,contactNumber,s);
+                contactDialed.setId(id);
+                mContactViewModel.updateDialedContact(contactDialed);
+                Log.d(TAG, "onClick: " + s);
+                    afterFirstCall();
+
             }
         });
 
@@ -408,10 +428,11 @@ public class MainActivity extends AppCompatActivity
                         startActivity(intent);
 
                         if(showCommentDialog){
-                            showCommentDialog();
+
+                            showCommentDialog(c.getId(),c.getPersonName(),c.getPersonContactNumber());
                         }
 
-                        mContactViewModel.insertDialedContact(new ContactDialed(c.getPersonName(), c.getPersonContactNumber()));
+                        mContactViewModel.insertDialedContact(new ContactDialed(c.getPersonName(), c.getPersonContactNumber(),""));
                         mContactViewModel.deleteById(c);
                         mContactsList.remove(j);
                         Log.i(TAG, "calling on id " + c.getId());

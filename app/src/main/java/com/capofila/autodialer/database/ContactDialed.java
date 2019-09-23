@@ -16,7 +16,11 @@ public class ContactDialed {
     @ColumnInfo(name="person_contact")
     private String personContact;
 
-    public ContactDialed(String personName, String personContact) {
+    @ColumnInfo(name="call_comment")
+    private String comment;
+
+    public ContactDialed(String personName, String personContact, String comment) {
+        this.comment = comment;
         this.personName = personName;
         this.personContact = personContact;
     }
@@ -35,5 +39,13 @@ public class ContactDialed {
 
     public String getPersonContact() {
         return personContact;
+    }
+
+    public String getComment() {
+        return comment;
+    }
+
+    public void setComment(String comment) {
+        this.comment = comment;
     }
 }
