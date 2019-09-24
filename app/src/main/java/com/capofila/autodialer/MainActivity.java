@@ -7,6 +7,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.location.SettingInjectorService;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -43,27 +44,26 @@ import com.capofila.autodialer.database.ContactEntity;
 import com.capofila.autodialer.database.ContactViewModel;
 import com.capofila.autodialer.importAndExport.MyCSVFileReader;
 import com.capofila.autodialer.setting.Settings;
-
-import org.apache.poi.ss.formula.functions.T;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener {
+        implements NavigationView.OnNavigationItemSelectedListener, SharedPreferences.OnSharedPreferenceChangeListener{
 
     private static final String TAG = "MainActivity";
     private List<ContactEntity> mContactsList = new ArrayList<>();
     private ContactAdapter mAdapter;
     private ContactEntity c;
     private ContactViewModel mContactViewModel;
-    private List<ContactEntity> contacts = new ArrayList<>();
+   // private List<ContactEntity> contacts = new ArrayList<>();
     private int j = 0;
     private String callTime;
     TextView mCountDownTimer;
     private Button posButton;
     private boolean showCommentDialog;
+    SharedPreferences.OnSharedPreferenceChangeListener preferenceChangeListener;
+    SharedPreferences sharedPreferences;
 
     private final static int REQUEST_CODE_ASK_PERMISSIONS = 1;
     private static final String[] REQUIRED_SDK_PERMISSIONS = new String[]{
@@ -72,6 +72,7 @@ public class MainActivity extends AppCompatActivity
             Manifest.permission.CALL_PHONE,
             Manifest.permission.READ_PHONE_STATE,
     };
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -123,21 +124,39 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        callTime = sharedPreferences.getString("button_timeout", "5000");
-        showCommentDialog = sharedPreferences.getBoolean("comment_dialog", true);
 
 
-        SharedPreferences.OnSharedPreferenceChangeListener preferenceChangeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
-            @Override
-            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-                callTime = sharedPreferences.getString("button_timeout", "5000");
-                showCommentDialog = sharedPreferences.getBoolean("comment_dialog", true);
-                Log.d(TAG, "onSharedPreferenceChanged: call Time" + callTime);
-                Log.d(TAG, "onSharedPreferenceChanged: showCommentDialog" + showCommentDialog);
-            }
-        };
-        sharedPreferences.registerOnSharedPreferenceChangeListener(preferenceChangeListener);
+    sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+    callTime = sharedPreferences.getString("button_timeout", "5000");
+    showCommentDialog = sharedPreferences.getBoolean(Settings.KEY_PREF_CALL_COMMENT_DIALOG_SWITCH, false);
+        Toast.makeText(this,"" + showCommentDialog,
+                Toast.LENGTH_SHORT).show();
+        Log.d(TAG, "onCreate: showCommntDialog" + showCommentDialog);
+
+//        preferenceChangeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
+//            @Override
+//            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+//                callTime = sharedPreferences.getString("button_timeout", "5000");
+//                showCommentDialog = sharedPreferences.getBoolean("comment_dialog", true);
+//                Log.d(TAG, "onSharedPreferenceChanged: call Time" + callTime);
+//                Log.d(TAG, "onSharedPreferenceChanged: showCommentDialog" + showCommentDialog);
+//            }
+//        };
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "onResume: ");
+        sharedPreferences.registerOnSharedPreferenceChangeListener(this);
+    }
+
+    @Override
+    protected void onPause() {
+        Log.d(TAG, "onPause: ");
+        super.onPause();
+        //sharedPreferences.unregisterOnSharedPreferenceChangeListener(this);
+
     }
 
     private void initRecyclerView() {
@@ -481,6 +500,14 @@ public class MainActivity extends AppCompatActivity
     }
 
 
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String s) {
+        showCommentDialog = sharedPreferences.getBoolean(Settings.KEY_PREF_CALL_COMMENT_DIALOG_SWITCH,true);
+        callTime = sharedPreferences.getString(Settings.KEY_PREF_CALL_START_TIME,"5000");
+        Log.d(TAG, "onSharedPreferenceChanged: call Time" + sharedPreferences.getBoolean(Settings.KEY_PREF_CALL_COMMENT_DIALOG_SWITCH,true));
+        Log.d(TAG, "onSharedPreferenceChanged: showCommentDialog" + sharedPreferences.getString(Settings.KEY_PREF_CALL_START_TIME,"5000"));
+
+    }
 }
 
 

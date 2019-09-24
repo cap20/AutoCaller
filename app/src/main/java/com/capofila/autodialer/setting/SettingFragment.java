@@ -4,7 +4,7 @@ import android.os.Bundle;
 import android.support.v7.preference.PreferenceFragmentCompat;
 import com.capofila.autodialer.R;
 
-public class SettingFragment extends PreferenceFragmentCompat {
+public class SettingFragment extends PreferenceFragmentCompat  {
 
     @Override
     public void onCreatePreferences(Bundle bundle, String rootKey) {
