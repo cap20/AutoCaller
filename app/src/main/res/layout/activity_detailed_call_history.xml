@@ -1,9 +1,88 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<android.support.design.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".contactHistory.DetailedCallHistory">
 
-</android.support.constraint.ConstraintLayout>
+    <android.support.design.widget.AppBarLayout
+        android:id="@+id/app_bar_layout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+
+        <android.support.v7.widget.Toolbar
+            android:id="@+id/detail_toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="150dp">
+            <LinearLayout
+                android:layout_marginLeft="12dp"
+                android:layout_marginStart="12dp"
+                android:paddingLeft="12dp"   
+                android:paddingStart="12dp"
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+            <TextView
+                android:id="@+id/name_heading"
+                android:textColor="@android:color/white"
+                android:text="@string/contact_name_header"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+            <TextView
+                android:layout_marginLeft="8dp"
+                android:layout_marginStart="8dp"
+                tools:text="shubham"
+                android:textColor="@android:color/white"
+                android:textAppearance="@style/TextAppearance.AppCompat.Large"
+                android:id="@+id/name_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+            <TextView
+                android:layout_marginTop="8dp"
+                android:textColor="@android:color/white"
+                android:id="@+id/contact_header"
+                android:text="@string/contact_number_header"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+            <TextView
+                android:id="@+id/contact_number_text"
+                tools:text="9899372603"
+                android:layout_marginLeft="8dp"
+                android:textColor="@android:color/white"
+
+                android:layout_marginStart="8dp"
+                android:textAppearance="@style/TextAppearance.AppCompat.Large"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+            </LinearLayout>
+
+        </android.support.v7.widget.Toolbar>
+
+    </android.support.design.widget.AppBarLayout>
+
+
+    <RelativeLayout
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:id="@+id/comment_logo"
+            android:src="@drawable/ic_comment"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+        <TextView
+            android:layout_toEndOf="@+id/comment_logo"
+            android:id="@+id/comment_header"
+            android:layout_marginLeft="4dp"
+            android:layout_width="wrap_content"
+            android:text="Comment"
+            android:layout_height="wrap_content"/>
+    </RelativeLayout>
+
+
+
+
+</android.support.design.widget.CoordinatorLayout>
