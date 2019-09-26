@@ -20,7 +20,6 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactViewHolder> {
     private OnItemClickListener mListener;
 
     public interface OnItemClickListener{
-        void onItemClick(int position);
         void onCallClick(int position);
     }
 

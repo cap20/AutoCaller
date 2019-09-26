@@ -17,17 +17,6 @@ public class ContactViewHolder extends RecyclerView.ViewHolder {
         mStatusText = itemView.findViewById(R.id.call_status);
         mCallText = itemView.findViewById(R.id.call_btn);
 
-        itemView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if(mListener != null){
-                    int position = getAdapterPosition();
-                    if(position != RecyclerView.NO_POSITION){
-                        mListener.onItemClick(position);
-                    }
-                }
-            }
-        });
         mCallText.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {

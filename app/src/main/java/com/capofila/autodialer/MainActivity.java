@@ -63,6 +63,8 @@ public class MainActivity extends AppCompatActivity
     private boolean showCommentDialog;
     SharedPreferences.OnSharedPreferenceChangeListener preferenceChangeListener;
     SharedPreferences sharedPreferences;
+    String commentText;
+
 
     private final static int REQUEST_CODE_ASK_PERMISSIONS = 1;
     private static final String[] REQUIRED_SDK_PERMISSIONS = new String[]{
@@ -108,10 +110,7 @@ public class MainActivity extends AppCompatActivity
         });
 
         mAdapter.setOnItemClickListener(new ContactAdapter.OnItemClickListener() {
-            @Override
-            public void onItemClick(int position) {
-                mContactsList.get(position);
-            }
+
 
             @Override
             public void onCallClick(int position) {
@@ -132,15 +131,6 @@ public class MainActivity extends AppCompatActivity
                 Toast.LENGTH_SHORT).show();
         Log.d(TAG, "onCreate: showCommntDialog" + showCommentDialog);
 
-//        preferenceChangeListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
-//            @Override
-//            public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-//                callTime = sharedPreferences.getString("button_timeout", "5000");
-//                showCommentDialog = sharedPreferences.getBoolean("comment_dialog", true);
-//                Log.d(TAG, "onSharedPreferenceChanged: call Time" + callTime);
-//                Log.d(TAG, "onSharedPreferenceChanged: showCommentDialog" + showCommentDialog);
-//            }
-//        };
     }
 
     @Override
@@ -206,11 +196,11 @@ public class MainActivity extends AppCompatActivity
         LayoutInflater layoutInflater = LayoutInflater.from(MainActivity.this);
         View countDownLayout = layoutInflater.inflate(R.layout.timer_dialog, null);
 
-        // AlertDialog creatiion
+        // AlertDialog creation
         final AlertDialog.Builder countDownAlertBuilder = new AlertDialog.Builder(MainActivity.this);
         countDownAlertBuilder.setTitle("Call Will Start In");
         countDownAlertBuilder.setView(countDownLayout);
-        //textview Reference
+        //TextView Reference
         mCountDownTimer = countDownLayout.findViewById(R.id.timerText);
         //button reference
         posButton = countDownLayout.findViewById(R.id.pos_btn);
@@ -315,25 +305,39 @@ public class MainActivity extends AppCompatActivity
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.comment_dialog_title);
         builder.setView(commentView);
+        TextInputLayout commentInputLayout = commentView.findViewById(R.id.comment_text_layout);
+        TextInputEditText commentEditText = commentView.findViewById(R.id.comment_edit_text);
+        if(commentEditText.getText() != null){
+            commentText = commentEditText.getText().toString();
+        }else{
+
+            Log.d(TAG, "showCommentDialog: Text Field is Empty");
+        }
+
+
+
         builder.setPositiveButton(R.string.comment_post_btn, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 Log.d(TAG, "onClick: comment posted");
 
-                TextInputLayout commentInputLayout = commentView.findViewById(R.id.comment_text_layout);
-                TextInputEditText commentEditText = commentView.findViewById(R.id.comment_edit_text);
-
-                String s = commentEditText.getText().toString();
-                ContactDialed contactDialed = new ContactDialed(name,contactNumber,s);
+                ContactDialed contactDialed = new ContactDialed(name,contactNumber,commentText);
                 //contactDialed.setId(id);
                 mContactViewModel.insertDialedContact(contactDialed);
-                Log.d(TAG, "onClick: " + s);
+                Log.d(TAG, "onClick: " + commentText);
                 afterFirstCall();
 
             }
         });
 
         AlertDialog dialog = builder.create();
+
+//        if(commentText.isEmpty() || commentText.equals("")){
+//            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setEnabled(false);
+//        }else{
+//            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setEnabled(true);
+//
+//        }
         dialog.setCancelable(false);
         dialog.setCanceledOnTouchOutside(false);
         dialog.show();
@@ -508,6 +512,3 @@ public class MainActivity extends AppCompatActivity
 
     }
 }
-
-
-

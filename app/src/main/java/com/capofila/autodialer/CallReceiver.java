@@ -9,6 +9,8 @@ import java.util.Date;
 
 public class CallReceiver extends PhonecallReceiver {
 
+
+
     @Override
     protected void onIncomingCallStarted(Context ctx, String number, Date start) {
     }
@@ -25,6 +27,7 @@ public class CallReceiver extends PhonecallReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        Toast.makeText(context,"Call Received",Toast.LENGTH_LONG).show();
         Log.d("asd", "onReceive: call received ");
         super.onReceive(context, intent);
     }
@@ -44,5 +47,7 @@ public class CallReceiver extends PhonecallReceiver {
     @Override
     protected void onMissedCall(Context ctx, String number, Date start) {
     }
+
+
 
 }
