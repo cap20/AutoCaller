@@ -64,6 +64,7 @@ public class MainActivity extends AppCompatActivity
     SharedPreferences.OnSharedPreferenceChangeListener preferenceChangeListener;
     SharedPreferences sharedPreferences;
     String commentText;
+    private static final int REQUEST_CODE = 0;
 
 
     private final static int REQUEST_CODE_ASK_PERMISSIONS = 1;
@@ -332,12 +333,6 @@ public class MainActivity extends AppCompatActivity
 
         AlertDialog dialog = builder.create();
 
-//        if(commentText.isEmpty() || commentText.equals("")){
-//            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setEnabled(false);
-//        }else{
-//            dialog.getButton(DialogInterface.BUTTON_POSITIVE).setEnabled(true);
-//
-//        }
         dialog.setCancelable(false);
         dialog.setCanceledOnTouchOutside(false);
         dialog.show();
@@ -511,4 +506,8 @@ public class MainActivity extends AppCompatActivity
         Log.d(TAG, "onSharedPreferenceChanged: showCommentDialog" + sharedPreferences.getString(Settings.KEY_PREF_CALL_START_TIME,"5000"));
 
     }
+
+
 }
+
+

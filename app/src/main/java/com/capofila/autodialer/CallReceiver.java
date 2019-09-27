@@ -9,8 +9,6 @@ import java.util.Date;
 
 public class CallReceiver extends PhonecallReceiver {
 
-
-
     @Override
     protected void onIncomingCallStarted(Context ctx, String number, Date start) {
     }
@@ -23,6 +21,7 @@ public class CallReceiver extends PhonecallReceiver {
 
     @Override
     protected void onIncomingCallEnded(Context ctx, String number, Date start, Date end) {
+
     }
 
     @Override
@@ -46,6 +45,7 @@ public class CallReceiver extends PhonecallReceiver {
 
     @Override
     protected void onMissedCall(Context ctx, String number, Date start) {
+
     }
 
 

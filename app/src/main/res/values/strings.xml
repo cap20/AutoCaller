@@ -118,4 +118,6 @@
         "when a user tries to pick up one of cards.\n\n"
     </string>
     <string name="comment_header">Comment</string>
+    <string name="call_now_timer">Call Now</string>
+    <string name="cancel_timer">Cancel</string>
 </resources>
