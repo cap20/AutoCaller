@@ -417,6 +417,10 @@ public class MainActivity extends AppCompatActivity
             Intent callHistoryIntent = new Intent(MainActivity.this, CallHistory.class);
             startActivity(callHistoryIntent);
         }
+
+        if(id == R.id.add_contact){
+            addContactDialog();
+        }
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
@@ -504,6 +508,52 @@ public class MainActivity extends AppCompatActivity
         callTime = sharedPreferences.getString(Settings.KEY_PREF_CALL_START_TIME,"5000");
         Log.d(TAG, "onSharedPreferenceChanged: call Time" + sharedPreferences.getBoolean(Settings.KEY_PREF_CALL_COMMENT_DIALOG_SWITCH,true));
         Log.d(TAG, "onSharedPreferenceChanged: showCommentDialog" + sharedPreferences.getString(Settings.KEY_PREF_CALL_START_TIME,"5000"));
+
+    }
+
+    private void addContactDialog(){
+        LayoutInflater layoutInflater = LayoutInflater.from(this);
+        View view = layoutInflater.inflate(R.layout.add_contact,null);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(R.string.add_contact_dialog_title);
+        builder.setPositiveButton("Save and Add More", null);
+        builder.setNegativeButton("Save and Exit", null);
+
+        final TextInputEditText contactPersonName = view.findViewById(R.id.name_edit_text);
+       final TextInputEditText contactNumberEditText = view.findViewById(R.id.contact_number_edit_text);
+
+        builder.setView(view);
+
+        final AlertDialog alertDialog = builder.create();
+
+        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            @Override
+            public void onShow(DialogInterface dialog) {
+                Button saveAndExit = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+                Button saveAndAddMore = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+
+                saveAndAddMore.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        String personName = contactPersonName.getText().toString();
+                        String contactNumber = contactNumberEditText.getText().toString();
+
+                        
+                    }
+                });
+
+                saveAndExit.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Log.d(TAG, "onClick: ");
+                    }
+                });
+
+
+                //
+            }
+        });
+        alertDialog.show();
 
     }
 

@@ -120,4 +120,7 @@
     <string name="comment_header">Comment</string>
     <string name="call_now_timer">Call Now</string>
     <string name="cancel_timer">Cancel</string>
+    <string name="person_name_hint">Person Name</string>
+    <string name="contact_number_hint">Contact Number</string>
+    <string name="add_contact_dialog_title">Add New Contact</string>
 </resources>

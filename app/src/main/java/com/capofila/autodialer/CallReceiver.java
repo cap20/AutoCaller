@@ -16,7 +16,7 @@ public class CallReceiver extends PhonecallReceiver {
     @Override
     protected void onOutgoingCallStarted(Context ctx, String number, Date start) {
         Log.d("Call rec", "onOutgoingCallStarted: " + start + number);
-        Toast.makeText(ctx,"Call Started",Toast.LENGTH_LONG).show();
+        //Toast.makeText(ctx,"Call Started",Toast.LENGTH_LONG).show();
     }
 
     @Override
@@ -26,7 +26,7 @@ public class CallReceiver extends PhonecallReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        Toast.makeText(context,"Call Received",Toast.LENGTH_LONG).show();
+       // Toast.makeText(context,"Call Received",Toast.LENGTH_LONG).show();
         Log.d("asd", "onReceive: call received ");
         super.onReceive(context, intent);
     }
@@ -40,7 +40,7 @@ public class CallReceiver extends PhonecallReceiver {
     @Override
     protected void onOutgoingCallEnded(Context ctx, String number, Date start, Date end) {
         Log.d("call rec", "onOutgoingCallEnded: " + start + end);
-        Toast.makeText(ctx,"Call ended " + start + end,Toast.LENGTH_LONG).show();
+        //Toast.makeText(ctx,"Call ended " + start + end,Toast.LENGTH_LONG).show();
     }
 
     @Override
