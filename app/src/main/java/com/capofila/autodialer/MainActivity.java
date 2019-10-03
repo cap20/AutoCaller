@@ -88,7 +88,7 @@ public class MainActivity extends AppCompatActivity
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                importCSV();
+                importExportDialog();
             }
         });
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
@@ -538,7 +538,16 @@ public class MainActivity extends AppCompatActivity
                         String personName = contactPersonName.getText().toString();
                         String contactNumber = contactNumberEditText.getText().toString();
 
-                        
+                        if(contactNumber.isEmpty() && personName.isEmpty()){
+                            Toast.makeText(MainActivity.this,"Enter Details",Toast.LENGTH_LONG).show();
+                        }else{
+                            ContactEntity c = new ContactEntity(personName,contactNumber);
+                            mContactViewModel.insert(c);
+                            contactPersonName.getText().clear();
+                            contactNumberEditText.getText().clear();
+                        }
+
+
                     }
                 });
 
@@ -546,6 +555,19 @@ public class MainActivity extends AppCompatActivity
                     @Override
                     public void onClick(View v) {
                         Log.d(TAG, "onClick: ");
+                        String personName = contactPersonName.getText().toString();
+                        String contactNumber = contactNumberEditText.getText().toString();
+
+                        if(contactNumber.isEmpty() && personName.isEmpty()){
+                            Toast.makeText(MainActivity.this,"Enter Details",Toast.LENGTH_LONG).show();
+                        }else{
+                            ContactEntity c = new ContactEntity(personName,contactNumber);
+                            mContactViewModel.insert(c);
+                            contactPersonName.getText().clear();
+                            contactNumberEditText.getText().clear();
+                            alertDialog.dismiss();
+                        }
+
                     }
                 });
 
@@ -554,6 +576,36 @@ public class MainActivity extends AppCompatActivity
             }
         });
         alertDialog.show();
+
+    }
+
+    private void importExportDialog(){
+        LayoutInflater layoutInflater = LayoutInflater.from(this);
+        View view = layoutInflater.inflate(R.layout.import_export_dialog,null);
+        AlertDialog.Builder builder  = new AlertDialog.Builder(this);
+        builder.setTitle("Import/Export")
+                .setIcon(R.drawable.ic_import_export);
+        builder.setView(view);
+        Button importButton = view.findViewById(R.id.import_btn);
+        Button exportButton = view.findViewById(R.id.export_btn);
+
+        importButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                importCSV();
+            }
+        });
+
+        exportButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Toast.makeText(MainActivity.this,"Export Clicked",Toast.LENGTH_LONG).show();
+            }
+        });
+
+        AlertDialog alertDialog = builder.create();
+        alertDialog.show();
+
 
     }
 
