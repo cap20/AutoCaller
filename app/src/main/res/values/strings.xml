@@ -20,7 +20,7 @@
     <string name="not_called_status_text">Not Called</string>
     <string name="next_call_dialog_title">Next Call?</string>
     <string name="dialog_next_call_btn_text">Next Call</string>
-    <string name="alert_dialog_cancel_btn_text">Cancel</string>
+    <string name="alert_dialog_cancel_btn_text">Pause</string>
     <string name="comment_dialog_title">Call Description</string>
     <string name="comment_post_btn">Post</string>
     <string name="comment_text">Call Status</string>
@@ -35,4 +35,7 @@
     <string name="add_contact_dialog_title">Add New Contact</string>
     <string name="import_btn_dialog">Import</string>
     <string name="export_btn_dialog">export</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

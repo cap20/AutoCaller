@@ -47,7 +47,7 @@ public class FileDialog {
         Dialog dialog = null;
         AlertDialog.Builder builder = new AlertDialog.Builder(activity);
 
-        builder.setTitle(currentPath.getPath());
+        builder.setTitle("Select CSV File To Import");
         if (selectDirectoryOption) {
             builder.setPositiveButton("Select directory", new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int which) {
@@ -55,6 +55,7 @@ public class FileDialog {
                     fireDirectorySelectedEvent(currentPath);
                 }
             });
+
         }
 
         builder.setItems(fileList, new DialogInterface.OnClickListener() {

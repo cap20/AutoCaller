@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.BottomSheetDialog;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TextInputEditText;
 import android.support.design.widget.TextInputLayout;
@@ -36,6 +37,7 @@ import android.view.Menu;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import com.capofila.autodialer.contactHistory.CallHistory;
 import com.capofila.autodialer.contactList.ContactAdapter;
 import com.capofila.autodialer.database.ContactDialed;
@@ -43,19 +45,20 @@ import com.capofila.autodialer.database.ContactEntity;
 import com.capofila.autodialer.database.ContactViewModel;
 import com.capofila.autodialer.importAndExport.MyCSVFileReader;
 import com.capofila.autodialer.setting.Settings;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity
-        implements NavigationView.OnNavigationItemSelectedListener, SharedPreferences.OnSharedPreferenceChangeListener{
+        implements NavigationView.OnNavigationItemSelectedListener, SharedPreferences.OnSharedPreferenceChangeListener {
 
     private static final String TAG = "MainActivity";
     private List<ContactEntity> mContactsList = new ArrayList<>();
     private ContactAdapter mAdapter;
     private ContactEntity c;
     private ContactViewModel mContactViewModel;
-   // private List<ContactEntity> contacts = new ArrayList<>();
+     // private List<ContactEntity> contacts = new ArrayList<>();
     private int j = 0;
     private String callTime;
     TextView mCountDownTimer;
@@ -64,9 +67,6 @@ public class MainActivity extends AppCompatActivity
     SharedPreferences.OnSharedPreferenceChangeListener preferenceChangeListener;
     SharedPreferences sharedPreferences;
     String commentText;
-    private static final int REQUEST_CODE = 0;
-
-
     private final static int REQUEST_CODE_ASK_PERMISSIONS = 1;
     private static final String[] REQUIRED_SDK_PERMISSIONS = new String[]{
             Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -84,11 +84,11 @@ public class MainActivity extends AppCompatActivity
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         FloatingActionButton fab = findViewById(R.id.fab);
-
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                importExportDialog();
+                showBottomSheetDialog();
+                //importExportDialog();
             }
         });
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
@@ -98,7 +98,6 @@ public class MainActivity extends AppCompatActivity
         drawer.addDrawerListener(toggle);
         toggle.syncState();
         navigationView.setNavigationItemSelectedListener(this);
-
         initRecyclerView();
 
         mContactViewModel = ViewModelProviders.of(this).get(ContactViewModel.class);
@@ -106,7 +105,7 @@ public class MainActivity extends AppCompatActivity
             @Override
             public void onChanged(@Nullable List<ContactEntity> contactEntities) {
                 mContactsList = contactEntities;
-                mAdapter.setContacts(contactEntities);
+                 mAdapter.setContacts(contactEntities);
             }
         });
 
@@ -117,21 +116,20 @@ public class MainActivity extends AppCompatActivity
             public void onCallClick(int position) {
                 ContactEntity c = mContactsList.get(position);
                 Log.d(TAG, "onCallClick: call btn in each card " + c.getId() + "\n" + c.getPersonContactNumber());
+
                 Intent intent = new Intent(Intent.ACTION_CALL);
                 intent.setData(Uri.parse("tel:" + c.getPersonContactNumber()));
                 startActivity(intent);
             }
         });
 
-
-
-    sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-    callTime = sharedPreferences.getString("button_timeout", "5000");
-    showCommentDialog = sharedPreferences.getBoolean(Settings.KEY_PREF_CALL_COMMENT_DIALOG_SWITCH, false);
-        Toast.makeText(this,"" + showCommentDialog,
+        sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        callTime = sharedPreferences.getString("button_timeout", "5000");
+        showCommentDialog = sharedPreferences.getBoolean(Settings.KEY_PREF_CALL_COMMENT_DIALOG_SWITCH, false);
+        Toast.makeText(this, "" + showCommentDialog,
                 Toast.LENGTH_SHORT).show();
-        Log.d(TAG, "onCreate: showCommntDialog" + showCommentDialog);
 
+        Log.d(TAG, "onCreate: showCommntDialog" + showCommentDialog);
     }
 
     @Override
@@ -211,22 +209,22 @@ public class MainActivity extends AppCompatActivity
         final AlertDialog alertDialog = countDownAlertBuilder.create();
 
         /*
-        * if @List is empty, then it will show @Toast
-        * else it will execute the countdown timer
-        * and positiveButton code
-        * */
+         * if @List is empty, then it will show @Toast
+         * else it will execute the countdown timer
+         * and positiveButton code
+         * */
         if (mContactsList.isEmpty()) {
-            importContactToast();
+            showImportContactMsg();
         } else {
             alertDialog.show();
             long millis = Long.parseLong(callTime);
-            Log.d(TAG, "startAutoCall: COUNT DOWN TIMER : TIME IN LONG " + millis);
             countDownTimer = new CountDownTimer(millis, 1000) {
                 @Override
                 public void onTick(long millisUntilFinished) {
                     long timer = millisUntilFinished / 1000;
                     String s = String.valueOf(timer);
                     mCountDownTimer.setText(s);
+
                 }
 
                 @Override
@@ -248,7 +246,7 @@ public class MainActivity extends AppCompatActivity
                 @Override
                 public void onClick(View v) {
                     countDownTimer.cancel();
-                    alertDialog.dismiss();
+                   // alertDialog.dismiss();
                 }
             });
             /**
@@ -270,9 +268,10 @@ public class MainActivity extends AppCompatActivity
         alertDialog.dismiss();
     }
 
-    private void autoCallDialog()   {
+
+    private void autoCallDialog() {
         if (mContactsList.isEmpty()) {
-            importContactToast();
+            showImportContactMsg();
         } else {
             ContactEntity contactEntity1 = mContactsList.get(j);
             //send intent with the @contact_number to auto dial
@@ -281,17 +280,17 @@ public class MainActivity extends AppCompatActivity
             startActivity(intent);
 
             /*
-            * if @showCommentDialog is true, which is the value of preference,
-            * @showCommentDialog method will execute,
-            * else @afterFirstCall() will execute
-            * */
-            if(showCommentDialog){
+             * if @showCommentDialog is true, which is the value of preference,
+             * @showCommentDialog method will execute,
+             * else @afterFirstCall() will execute
+             * */
+            if (showCommentDialog) {
                 showCommentDialog(contactEntity1.getId(), contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber());
                 //mContactViewModel.insertDialedContact(new ContactDialed(contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber(),""));
                 mContactViewModel.deleteById(contactEntity1);
                 mContactsList.remove(j);
-            }else{
-                mContactViewModel.insertDialedContact(new ContactDialed(contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber(),""));
+            } else {
+                mContactViewModel.insertDialedContact(new ContactDialed(contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber(), ""));
                 mContactViewModel.deleteById(contactEntity1);
                 mContactsList.remove(j);
                 afterFirstCall();
@@ -301,20 +300,19 @@ public class MainActivity extends AppCompatActivity
 
     private void showCommentDialog(final int id, final String name, final String contactNumber) {
         LayoutInflater layoutInflater = LayoutInflater.from(MainActivity.this);
-        final View commentView = layoutInflater.inflate(R.layout.comment_dialog,null);
+        final View commentView = layoutInflater.inflate(R.layout.comment_dialog, null);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.comment_dialog_title);
         builder.setView(commentView);
         TextInputLayout commentInputLayout = commentView.findViewById(R.id.comment_text_layout);
         TextInputEditText commentEditText = commentView.findViewById(R.id.comment_edit_text);
-        if(commentEditText.getText() != null){
+        if (commentEditText.getText() != null) {
             commentText = commentEditText.getText().toString();
-        }else{
+        } else {
 
             Log.d(TAG, "showCommentDialog: Text Field is Empty");
         }
-
 
 
         builder.setPositiveButton(R.string.comment_post_btn, new DialogInterface.OnClickListener() {
@@ -322,7 +320,7 @@ public class MainActivity extends AppCompatActivity
             public void onClick(DialogInterface dialog, int which) {
                 Log.d(TAG, "onClick: comment posted");
 
-                ContactDialed contactDialed = new ContactDialed(name,contactNumber,commentText);
+                ContactDialed contactDialed = new ContactDialed(name, contactNumber, commentText);
                 //contactDialed.setId(id);
                 mContactViewModel.insertDialedContact(contactDialed);
                 Log.d(TAG, "onClick: " + commentText);
@@ -338,9 +336,9 @@ public class MainActivity extends AppCompatActivity
         dialog.show();
     }
 
-    private void afterFirstCall(){
+    private void afterFirstCall() {
         if (mContactsList.isEmpty()) {
-            importContactToast();
+            showImportContactMsg();
         } else {
             c = mContactsList.get(j);
         }
@@ -368,19 +366,19 @@ public class MainActivity extends AppCompatActivity
                         intent.setData(Uri.parse("tel:" + c.getPersonContactNumber()));
                         startActivity(intent);
 
-                        if(showCommentDialog){
-                            showCommentDialog(c.getId(),c.getPersonName(),c.getPersonContactNumber());
+                        if (showCommentDialog) {
+                            showCommentDialog(c.getId(), c.getPersonName(), c.getPersonContactNumber());
                             mContactViewModel.deleteById(c);
                             mContactsList.remove(j);
-                        }else{
-                            mContactViewModel.insertDialedContact(new ContactDialed(c.getPersonName(), c.getPersonContactNumber(),""));
+                        } else {
+                            mContactViewModel.insertDialedContact(new ContactDialed(c.getPersonName(), c.getPersonContactNumber(), ""));
                             mContactViewModel.deleteById(c);
                             mContactsList.remove(j);
                             Log.i(TAG, "calling on id " + c.getId());
                         }
 
-                        if(mContactsList.isEmpty()) {
-                            importContactToast();
+                        if (mContactsList.isEmpty()) {
+                            showImportContactMsg();
                             dialog.dismiss();
                         } else {
                             c = mContactsList.get(j);
@@ -399,7 +397,7 @@ public class MainActivity extends AppCompatActivity
         alertDialog.show();
     }
 
-    private void importContactToast() {
+    private void showImportContactMsg() {
         Toast.makeText(MainActivity.this, "No Contact Found!! Import Contacts", Toast.LENGTH_LONG).show();
     }
 
@@ -413,12 +411,11 @@ public class MainActivity extends AppCompatActivity
             startActivity(settingIntent);
         }
         if (id == R.id.call_history) {
-            Toast.makeText(MainActivity.this, "call his", Toast.LENGTH_LONG).show();
             Intent callHistoryIntent = new Intent(MainActivity.this, CallHistory.class);
             startActivity(callHistoryIntent);
         }
 
-        if(id == R.id.add_contact){
+        if (id == R.id.add_contact) {
             addContactDialog();
         }
         DrawerLayout drawer = findViewById(R.id.drawer_layout);
@@ -504,23 +501,23 @@ public class MainActivity extends AppCompatActivity
 
     @Override
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String s) {
-        showCommentDialog = sharedPreferences.getBoolean(Settings.KEY_PREF_CALL_COMMENT_DIALOG_SWITCH,true);
-        callTime = sharedPreferences.getString(Settings.KEY_PREF_CALL_START_TIME,"5000");
-        Log.d(TAG, "onSharedPreferenceChanged: call Time" + sharedPreferences.getBoolean(Settings.KEY_PREF_CALL_COMMENT_DIALOG_SWITCH,true));
-        Log.d(TAG, "onSharedPreferenceChanged: showCommentDialog" + sharedPreferences.getString(Settings.KEY_PREF_CALL_START_TIME,"5000"));
+        showCommentDialog = sharedPreferences.getBoolean(Settings.KEY_PREF_CALL_COMMENT_DIALOG_SWITCH, true);
+        callTime = sharedPreferences.getString(Settings.KEY_PREF_CALL_START_TIME, "5000");
+        Log.d(TAG, "onSharedPreferenceChanged: call Time" + sharedPreferences.getBoolean(Settings.KEY_PREF_CALL_COMMENT_DIALOG_SWITCH, true));
+        Log.d(TAG, "onSharedPreferenceChanged: showCommentDialog" + sharedPreferences.getString(Settings.KEY_PREF_CALL_START_TIME, "5000"));
 
     }
 
-    private void addContactDialog(){
+    private void addContactDialog() {
         LayoutInflater layoutInflater = LayoutInflater.from(this);
-        View view = layoutInflater.inflate(R.layout.add_contact,null);
+        View view = layoutInflater.inflate(R.layout.add_contact, null);
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.add_contact_dialog_title);
         builder.setPositiveButton("Save and Add More", null);
         builder.setNegativeButton("Save and Exit", null);
 
         final TextInputEditText contactPersonName = view.findViewById(R.id.name_edit_text);
-       final TextInputEditText contactNumberEditText = view.findViewById(R.id.contact_number_edit_text);
+        final TextInputEditText contactNumberEditText = view.findViewById(R.id.contact_number_edit_text);
 
         builder.setView(view);
 
@@ -538,16 +535,14 @@ public class MainActivity extends AppCompatActivity
                         String personName = contactPersonName.getText().toString();
                         String contactNumber = contactNumberEditText.getText().toString();
 
-                        if(contactNumber.isEmpty() && personName.isEmpty()){
-                            Toast.makeText(MainActivity.this,"Enter Details",Toast.LENGTH_LONG).show();
-                        }else{
-                            ContactEntity c = new ContactEntity(personName,contactNumber);
+                        if (contactNumber.isEmpty() && personName.isEmpty()) {
+                            Toast.makeText(MainActivity.this, "Enter Details", Toast.LENGTH_LONG).show();
+                        } else {
+                            ContactEntity c = new ContactEntity(personName, contactNumber);
                             mContactViewModel.insert(c);
                             contactPersonName.getText().clear();
                             contactNumberEditText.getText().clear();
                         }
-
-
                     }
                 });
 
@@ -558,58 +553,81 @@ public class MainActivity extends AppCompatActivity
                         String personName = contactPersonName.getText().toString();
                         String contactNumber = contactNumberEditText.getText().toString();
 
-                        if(contactNumber.isEmpty() && personName.isEmpty()){
-                            Toast.makeText(MainActivity.this,"Enter Details",Toast.LENGTH_LONG).show();
-                        }else{
-                            ContactEntity c = new ContactEntity(personName,contactNumber);
+                        if (contactNumber.isEmpty() && personName.isEmpty()) {
+                            Toast.makeText(MainActivity.this, "Enter Details", Toast.LENGTH_LONG).show();
+                        } else {
+                            ContactEntity c = new ContactEntity(personName, contactNumber);
                             mContactViewModel.insert(c);
                             contactPersonName.getText().clear();
                             contactNumberEditText.getText().clear();
                             alertDialog.dismiss();
                         }
-
                     }
                 });
-
-
-                //
             }
         });
         alertDialog.show();
 
     }
 
-    private void importExportDialog(){
-        LayoutInflater layoutInflater = LayoutInflater.from(this);
-        View view = layoutInflater.inflate(R.layout.import_export_dialog,null);
-        AlertDialog.Builder builder  = new AlertDialog.Builder(this);
-        builder.setTitle("Import/Export")
-                .setIcon(R.drawable.ic_import_export);
-        builder.setView(view);
-        Button importButton = view.findViewById(R.id.import_btn);
-        Button exportButton = view.findViewById(R.id.export_btn);
+//    private void importExportDialog() {
+//        LayoutInflater layoutInflater = LayoutInflater.from(this);
+//        View view = layoutInflater.inflate(R.layout.import_export_dialog, null);
+//        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+//        builder.setTitle("Import/Export")
+//                .setIcon(R.drawable.ic_import_export);
+//        builder.setView(view);
+//        Button importButton = view.findViewById(R.id.import_btn);
+//        Button exportButton = view.findViewById(R.id.export_btn);
+//        final AlertDialog alertDialog = builder.create();
+//
+//        importButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                importCSV();
+//                alertDialog.dismiss();
+//            }
+//        });
+//
+//        exportButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                Toast.makeText(MainActivity.this, "Export Clicked", Toast.LENGTH_LONG).show();
+//                alertDialog.dismiss();
+//            }
+//        });
+//        alertDialog.show();
+//    }
 
-        importButton.setOnClickListener(new View.OnClickListener() {
+
+    public void showBottomSheetDialog() {
+        View view = getLayoutInflater().inflate(R.layout.fragment_bottom_sheet, null);
+
+        final BottomSheetDialog dialog = new BottomSheetDialog(this);
+        dialog.setContentView(view);
+        dialog.show();
+
+        Button importBtn = view.findViewById(R.id.bottom_dialog_import);
+        Button exportBtn = view.findViewById(R.id.bottom_dialog_export);
+
+        importBtn.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
+            public void onClick(View v) {
                 importCSV();
+                dialog.dismiss();
             }
         });
 
-        exportButton.setOnClickListener(new View.OnClickListener() {
+        exportBtn.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onClick(View view) {
-                Toast.makeText(MainActivity.this,"Export Clicked",Toast.LENGTH_LONG).show();
+            public void onClick(View v) {
+                Toast.makeText(MainActivity.this, "Export Clicked", Toast.LENGTH_LONG).show();
+                dialog.dismiss();
             }
         });
-
-        AlertDialog alertDialog = builder.create();
-        alertDialog.show();
 
 
     }
-
-
 }
 
 
