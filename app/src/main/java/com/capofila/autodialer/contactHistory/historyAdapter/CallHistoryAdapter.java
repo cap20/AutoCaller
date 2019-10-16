@@ -49,7 +49,6 @@ public class CallHistoryAdapter extends RecyclerView.Adapter<CallHistoryAdapter.
         }
     }
 
-
     @NonNull
     @Override
     public CallHistoryViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int i) {
@@ -59,11 +58,10 @@ public class CallHistoryAdapter extends RecyclerView.Adapter<CallHistoryAdapter.
 
     @Override
     public void onBindViewHolder(@NonNull CallHistoryViewHolder callHistoryViewHolder, int i) {
-        ContactDialed currentDialed = mContactDialed.get(i);
 
+        ContactDialed currentDialed = mContactDialed.get(i);
         callHistoryViewHolder.mPersonName.setText(currentDialed.getPersonName());
         callHistoryViewHolder.mPersonContact.setText(currentDialed.getPersonContact());
-
     }
 
     @Override

@@ -1,22 +1,27 @@
 package com.capofila.autodialer;
 
 import android.Manifest;
+import android.app.ProgressDialog;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.Environment;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.BottomSheetDialog;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TextInputEditText;
-import android.support.design.widget.TextInputLayout;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
@@ -35,6 +40,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -46,9 +52,14 @@ import com.capofila.autodialer.database.ContactViewModel;
 import com.capofila.autodialer.importAndExport.MyCSVFileReader;
 import com.capofila.autodialer.setting.Settings;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import au.com.bytecode.opencsv.CSVWriter;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener, SharedPreferences.OnSharedPreferenceChangeListener {
@@ -56,7 +67,7 @@ public class MainActivity extends AppCompatActivity
     private static final String TAG = "MainActivity";
     private List<ContactEntity> mContactsList = new ArrayList<>();
     private ContactAdapter mAdapter;
-    private ContactEntity c;
+    private ContactEntity contactEntity;
     private ContactViewModel mContactViewModel;
      // private List<ContactEntity> contacts = new ArrayList<>();
     private int j = 0;
@@ -64,9 +75,12 @@ public class MainActivity extends AppCompatActivity
     TextView mCountDownTimer;
     private Button posButton;
     private boolean showCommentDialog;
+    private Boolean startCountDown;
     SharedPreferences.OnSharedPreferenceChangeListener preferenceChangeListener;
     SharedPreferences sharedPreferences;
     String commentText;
+    CountDownTimer countDownTimer;
+    private ContactEntity firstCallEntity;
     private final static int REQUEST_CODE_ASK_PERMISSIONS = 1;
     private static final String[] REQUIRED_SDK_PERMISSIONS = new String[]{
             Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -130,6 +144,8 @@ public class MainActivity extends AppCompatActivity
                 Toast.LENGTH_SHORT).show();
 
         Log.d(TAG, "onCreate: showCommntDialog" + showCommentDialog);
+
+        startCountDown = false;
     }
 
     @Override
@@ -137,6 +153,9 @@ public class MainActivity extends AppCompatActivity
         super.onResume();
         Log.d(TAG, "onResume: ");
         sharedPreferences.registerOnSharedPreferenceChangeListener(this);
+        if(startCountDown){
+            countDownTimer.start();
+        }
     }
 
     @Override
@@ -190,6 +209,7 @@ public class MainActivity extends AppCompatActivity
         /**
          *Variables and @View Declaration..
          */
+        showCommentDialog = true;
 
         final CountDownTimer countDownTimer;
         LayoutInflater layoutInflater = LayoutInflater.from(MainActivity.this);
@@ -224,7 +244,6 @@ public class MainActivity extends AppCompatActivity
                     long timer = millisUntilFinished / 1000;
                     String s = String.valueOf(timer);
                     mCountDownTimer.setText(s);
-
                 }
 
                 @Override
@@ -235,7 +254,8 @@ public class MainActivity extends AppCompatActivity
                     posButton.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
-                            executePositiveButton(alertDialog);
+                            autoCallDialog();
+                            alertDialog.dismiss();
                         }
                     });
                     posButton.performClick();
@@ -246,7 +266,7 @@ public class MainActivity extends AppCompatActivity
                 @Override
                 public void onClick(View v) {
                     countDownTimer.cancel();
-                   // alertDialog.dismiss();
+                   alertDialog.dismiss();
                 }
             });
             /**
@@ -256,27 +276,21 @@ public class MainActivity extends AppCompatActivity
                 @Override
                 public void onClick(View v) {
                     countDownTimer.cancel();
-                    executePositiveButton(alertDialog);
+                    autoCallDialog();
+                    alertDialog.dismiss();
                 }
             });
         }
     }
 
-    // positive button execution code is here..
-    private void executePositiveButton(AlertDialog alertDialog) {
-        autoCallDialog();
-        alertDialog.dismiss();
-    }
-
-
     private void autoCallDialog() {
         if (mContactsList.isEmpty()) {
             showImportContactMsg();
         } else {
-            ContactEntity contactEntity1 = mContactsList.get(j);
+            firstCallEntity = mContactsList.get(j);
             //send intent with the @contact_number to auto dial
             Intent intent = new Intent(Intent.ACTION_CALL);
-            intent.setData(Uri.parse("tel:" + contactEntity1.getPersonContactNumber()));
+            intent.setData(Uri.parse("tel:" + firstCallEntity.getPersonContactNumber()));
             startActivity(intent);
 
             /*
@@ -285,13 +299,18 @@ public class MainActivity extends AppCompatActivity
              * else @afterFirstCall() will execute
              * */
             if (showCommentDialog) {
-                showCommentDialog(contactEntity1.getId(), contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber());
-                //mContactViewModel.insertDialedContact(new ContactDialed(contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber(),""));
-                mContactViewModel.deleteById(contactEntity1);
-                mContactsList.remove(j);
+                new Handler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        showCommentDialog(firstCallEntity.getId(), firstCallEntity.getPersonName(), firstCallEntity.getPersonContactNumber());
+                        mContactViewModel.deleteById(firstCallEntity);
+                        mContactsList.remove(j);
+                    }
+                }, 5000);
+
             } else {
-                mContactViewModel.insertDialedContact(new ContactDialed(contactEntity1.getPersonName(), contactEntity1.getPersonContactNumber(), ""));
-                mContactViewModel.deleteById(contactEntity1);
+                mContactViewModel.insertDialedContact(new ContactDialed(firstCallEntity.getPersonName(), firstCallEntity.getPersonContactNumber(), ""));
+                mContactViewModel.deleteById(firstCallEntity);
                 mContactsList.remove(j);
                 afterFirstCall();
             }
@@ -305,34 +324,31 @@ public class MainActivity extends AppCompatActivity
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle(R.string.comment_dialog_title);
         builder.setView(commentView);
-        TextInputLayout commentInputLayout = commentView.findViewById(R.id.comment_text_layout);
+
         TextInputEditText commentEditText = commentView.findViewById(R.id.comment_edit_text);
+
         if (commentEditText.getText() != null) {
             commentText = commentEditText.getText().toString();
         } else {
-
             Log.d(TAG, "showCommentDialog: Text Field is Empty");
         }
-
 
         builder.setPositiveButton(R.string.comment_post_btn, new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                Log.d(TAG, "onClick: comment posted");
 
                 ContactDialed contactDialed = new ContactDialed(name, contactNumber, commentText);
-                //contactDialed.setId(id);
                 mContactViewModel.insertDialedContact(contactDialed);
                 Log.d(TAG, "onClick: " + commentText);
                 afterFirstCall();
-
+                countDownTimer.start();
             }
         });
 
         AlertDialog dialog = builder.create();
 
-        dialog.setCancelable(false);
-        dialog.setCanceledOnTouchOutside(false);
+//        dialog.setCancelable(false);
+//        dialog.setCanceledOnTouchOutside(false);
         dialog.show();
     }
 
@@ -340,60 +356,172 @@ public class MainActivity extends AppCompatActivity
         if (mContactsList.isEmpty()) {
             showImportContactMsg();
         } else {
-            c = mContactsList.get(j);
+            contactEntity = mContactsList.get(j);
         }
 
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View view = inflater.inflate(R.layout.call_layout, null,false);
+
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
-        builder.setTitle(R.string.next_call_dialog_title);
-        builder.setMessage("To call next number press next call \n To Pause Click cancel");
-        builder.setPositiveButton(R.string.next_call_dialog_title, null);
-        builder.setNegativeButton(R.string.alert_dialog_cancel_btn_text, null);
+        builder.setView(view);
+
+        //builder.setTitle(R.string.next_call_dialog_title);
+//        builder.setMessage("To call next number press next call \n To Pause Click cancel");
+//        builder.setPositiveButton(R.string.next_call_dialog_title, null);
+//        builder.setNegativeButton(R.string.alert_dialog_cancel_btn_text, null);
+
+        final TextView countDownTimeText = view.findViewById(R.id.count_down_timer);
+        TextView contactPersonName = view.findViewById(R.id.c_name);
+        TextView contactPersonNumber = view.findViewById(R.id.c_number);
+
+        contactPersonName.setText(contactEntity.getPersonName());
+        contactPersonNumber.setText(contactEntity.getPersonContactNumber());
+
+        Button pauseButton = view.findViewById(R.id.pause_btn);
+        Button startButton= view.findViewById(R.id.start_btn);
+        final Button nextCallButton = view.findViewById(R.id.nextCall_btn);
+        //Button cancelButton = view.findViewById(R.id.close_btn);
+        ImageView closeButton = view.findViewById(R.id.closeImageButton);
+        long callTimeInLong = Long.parseLong(callTime);
 
         final AlertDialog alertDialog = builder.create();
 
-        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+        countDownTimer = new CountDownTimer(callTimeInLong,1000) {
             @Override
-            public void onShow(final DialogInterface dialog) {
+            public void onTick(long millisUntilFinished) {
+                nextCallButton.setEnabled(false);
+                long timer = millisUntilFinished / 1000;
+                String s = String.valueOf(timer);
+                countDownTimeText.setText(s);
+            }
+            @Override
+            public void onFinish() {
+                Intent intent = new Intent(Intent.ACTION_CALL);
+                intent.setData(Uri.parse("tel:" + contactEntity.getPersonContactNumber()));
+                startActivity(intent);
 
-                Button negBtn = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
-                final Button posBtn = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+                if (showCommentDialog){
+                    showCommentDialog(contactEntity.getId(), contactEntity.getPersonName(), contactEntity.getPersonContactNumber());
+                    mContactViewModel.deleteById(contactEntity);
+                    mContactsList.remove(j);
+                    alertDialog.dismiss();
+                } else {
+                    countDownTimer.cancel();
+                    mContactViewModel.insertDialedContact(new ContactDialed(contactEntity.getPersonName(), contactEntity.getPersonContactNumber(), ""));
+                    mContactViewModel.deleteById(contactEntity);
+                    mContactsList.remove(j);
+                    startCountDown = true;
+                    alertDialog.dismiss();
+                }
 
-                posBtn.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
+                if (mContactsList.isEmpty()) {
+                    showImportContactMsg();
+                    alertDialog.dismiss();
+                } else {
+                    contactEntity = mContactsList.get(j);
+                }
 
-                        Intent intent = new Intent(Intent.ACTION_CALL);
-                        intent.setData(Uri.parse("tel:" + c.getPersonContactNumber()));
-                        startActivity(intent);
+            }
+        }.start();
 
-                        if (showCommentDialog) {
-                            showCommentDialog(c.getId(), c.getPersonName(), c.getPersonContactNumber());
-                            mContactViewModel.deleteById(c);
-                            mContactsList.remove(j);
-                        } else {
-                            mContactViewModel.insertDialedContact(new ContactDialed(c.getPersonName(), c.getPersonContactNumber(), ""));
-                            mContactViewModel.deleteById(c);
-                            mContactsList.remove(j);
-                            Log.i(TAG, "calling on id " + c.getId());
-                        }
 
-                        if (mContactsList.isEmpty()) {
-                            showImportContactMsg();
-                            dialog.dismiss();
-                        } else {
-                            c = mContactsList.get(j);
-                        }
-                    }
-                });
 
-                negBtn.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        alertDialog.dismiss();
-                    }
-                });
+        pauseButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                countDownTimer.cancel();
+                nextCallButton.setEnabled(true);
             }
         });
+
+        startButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                countDownTimer.start();
+                nextCallButton.setEnabled(true);
+            }
+        });
+
+        closeButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                countDownTimer.cancel();
+                alertDialog.dismiss();
+                showCommentDialog = false;
+            }
+        });
+
+        nextCallButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                 j = j++;
+                Intent intent = new Intent(Intent.ACTION_CALL);
+                intent.setData(Uri.parse("tel:" + contactEntity.getPersonContactNumber()));
+                startActivity(intent);
+
+                if (showCommentDialog) {
+                    showCommentDialog(contactEntity.getId(), contactEntity.getPersonName(), contactEntity.getPersonContactNumber());
+                    mContactViewModel.deleteById(contactEntity);
+                    mContactsList.remove(j);
+
+                } else {
+                    mContactViewModel.insertDialedContact(new ContactDialed(contactEntity.getPersonName(), contactEntity.getPersonContactNumber(), ""));
+                    mContactViewModel.deleteById(contactEntity);
+                    mContactsList.remove(j);
+                    Log.i(TAG, "calling on id " + contactEntity.getId());
+                }
+
+                if (mContactsList.isEmpty()) {
+                    showImportContactMsg();
+                    alertDialog.dismiss();
+                } else {
+                    contactEntity = mContactsList.get(j);
+                }
+            }
+        });
+//        alertDialog.setOnShowListener(new DialogInterface.OnShowListener() {
+//            @Override
+//            public void onShow(final DialogInterface dialog) {
+//
+//                Button negBtn = alertDialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+//                final Button posBtn = alertDialog.getButton(AlertDialog.BUTTON_POSITIVE);
+//
+//                posBtn.setOnClickListener(new View.OnClickListener() {
+//                    @Override
+//                    public void onClick(View v) {
+//
+//                        Intent intent = new Intent(Intent.ACTION_CALL);
+//                        intent.setData(Uri.parse("tel:" + contactEntity.getPersonContactNumber()));
+//                        startActivity(intent);
+//
+//                        if (showCommentDialog) {
+//                            showCommentDialog(contactEntity.getId(), contactEntity.getPersonName(), contactEntity.getPersonContactNumber());
+//                            mContactViewModel.deleteById(contactEntity);
+//                            mContactsList.remove(j);
+//                        } else {
+//                            mContactViewModel.insertDialedContact(new ContactDialed(contactEntity.getPersonName(), contactEntity.getPersonContactNumber(), ""));
+//                            mContactViewModel.deleteById(contactEntity);
+//                            mContactsList.remove(j);
+//                            Log.i(TAG, "calling on id " + contactEntity.getId());
+//                        }
+//
+//                        if (mContactsList.isEmpty()) {
+//                            showImportContactMsg();
+//                            dialog.dismiss();
+//                        } else {
+//                            contactEntity = mContactsList.get(j);
+//                        }
+//                    }
+//                });
+//
+//                negBtn.setOnClickListener(new View.OnClickListener() {
+//                    @Override
+//                    public void onClick(View v) {
+//                        alertDialog.dismiss();
+//                    }
+//                });
+//            }
+//        });
         alertDialog.show();
     }
 
@@ -509,6 +637,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void addContactDialog() {
+
         LayoutInflater layoutInflater = LayoutInflater.from(this);
         View view = layoutInflater.inflate(R.layout.add_contact, null);
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -598,8 +727,6 @@ public class MainActivity extends AppCompatActivity
 //        });
 //        alertDialog.show();
 //    }
-
-
     public void showBottomSheetDialog() {
         View view = getLayoutInflater().inflate(R.layout.fragment_bottom_sheet, null);
 
@@ -621,13 +748,87 @@ public class MainActivity extends AppCompatActivity
         exportBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(MainActivity.this, "Export Clicked", Toast.LENGTH_LONG).show();
+                if (ContextCompat.checkSelfPermission(MainActivity.this,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                        != PackageManager.PERMISSION_GRANTED) {
+
+                    // Permission is not granted
+                    // Should we show an explanation?
+                    if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this,
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+                        // Show an explanation to the user *asynchronously* -- don't block
+                        // this thread waiting for the user's response! After the user
+                        // sees the explanation, try again to request the permission.
+                    } else {
+                        // No explanation needed; request the permission
+                        ActivityCompat.requestPermissions(MainActivity.this,
+                                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 0);
+
+                        // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                        // app-defined int constant. The callback method gets the
+                        // result of the request.
+                    }
+                } else {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
+
+                        new ExportEmptyCSVTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                    } else {
+
+                        new ExportEmptyCSVTask().execute();
+                    }
+                }
                 dialog.dismiss();
             }
         });
 
 
     }
+
+    public class ExportEmptyCSVTask extends AsyncTask<String, Void, Boolean>{
+        private final ProgressDialog dialog = new ProgressDialog(MainActivity.this);
+//        DbHelper dbhelper;
+
+        @Override
+        protected void onPreExecute() {
+            this.dialog.setMessage("Exporting database...");
+            this.dialog.show();
+//            dbhelper = new DbHelper(MainActivity.this);
+        }
+
+        protected Boolean doInBackground(final String... args) {
+
+            File exportDir = new File(Environment.getExternalStorageDirectory(), "/Auto Dialer/");
+            if (!exportDir.exists()) {
+                exportDir.mkdirs();
+            }
+
+            File file = new File(exportDir, "Template.csv");
+            try {
+                file.createNewFile();
+                CSVWriter csvWrite = new CSVWriter(new FileWriter(file));
+                String[] columns = {"id","name","contact number"};
+            csvWrite.writeNext(columns);
+
+                csvWrite.close();
+                return true;
+
+            } catch (IOException e) {
+                return false;
+            }
+        }
+        protected void onPostExecute(final Boolean success){
+
+            if (this.dialog.isShowing()) {
+                this.dialog.dismiss();
+            }
+            if (success) {
+                Toast.makeText(MainActivity.this, "Exported to Internal/Auto Dialer/Template.csv", Toast.LENGTH_LONG).show();
+            } else {
+                Toast.makeText(MainActivity.this, "Export failed", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
 }
 
 
